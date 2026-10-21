@@ -12,7 +12,9 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  UserCircle
+  UserCircle,
+  Award,
+  HeartHandshake
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -52,6 +54,8 @@ export default function AdminLayout() {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { label: 'Registros', icon: Users, path: '/admin/registros' },
+    { label: 'Padres', icon: HeartHandshake, path: '/admin/padres' },
+    { label: 'Certificados', icon: Award, path: '/admin/certificados' },
     { label: 'Configuración', icon: Settings, path: '/admin/config' },
   ];
 

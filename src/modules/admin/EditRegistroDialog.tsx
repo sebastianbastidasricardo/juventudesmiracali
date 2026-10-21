@@ -46,6 +46,9 @@ export function EditRegistroDialog({ isOpen, onClose, record, onSaved }: { isOpe
         is_internal: record.is_internal || false,
         church_headquarters: record.church_headquarters || '',
         is_infomira_subscribed: record.is_infomira_subscribed || false,
+        guardian_relationship: record.guardian_relationship || '',
+        guardian_name: record.guardian_name || '',
+        guardian_phone: record.guardian_phone || '',
       });
     }
   }, [record]);
@@ -152,6 +155,44 @@ export function EditRegistroDialog({ isOpen, onClose, record, onSaved }: { isOpe
             </div>
           </div>
           
+          <div className="h-px bg-border/50 my-2" />
+          
+          {/* Acudiente */}
+          <div className="space-y-3 p-3 rounded-2xl bg-foreground/[0.03] border border-foreground/5">
+            <Label className="font-black text-xs uppercase text-primary tracking-wider block">
+              Datos del Acudiente (Menor de Edad)
+            </Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold opacity-70">Parentesco</Label>
+                <Input 
+                  value={formData.guardian_relationship || ''} 
+                  placeholder="Mamá / Papá / Tutor"
+                  onChange={e => handleChange('guardian_relationship', e.target.value)} 
+                  className="bg-background/50 border-none text-xs h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold opacity-70">Nombre</Label>
+                <Input 
+                  value={formData.guardian_name || ''} 
+                  placeholder="Nombre completo"
+                  onChange={e => handleChange('guardian_name', e.target.value)} 
+                  className="bg-background/50 border-none text-xs h-9"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold opacity-70">WhatsApp</Label>
+                <Input 
+                  value={formData.guardian_phone || ''} 
+                  placeholder="3001234567"
+                  onChange={e => handleChange('guardian_phone', e.target.value.replace(/\D/g, ''))} 
+                  className="bg-background/50 border-none text-xs h-9 font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="h-px bg-border/50 my-2" />
           
           {/* Nivel Educativo */}

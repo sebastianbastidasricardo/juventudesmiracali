@@ -30,11 +30,18 @@ import {
   Shield,
   Calendar,
   ChevronsDown,
-  Mic, Music, Smile, Volume2, Video, MonitorPlay, Presentation, Package, Trophy, HeartPulse, ShieldCheck, Users, Palette 
+  Mic, Music, Smile, Volume2, Video, MonitorPlay, Presentation, Package, Trophy, HeartPulse, ShieldCheck, Users, Palette,
+  Mail,
+  Award,
+  FileText,
+  Loader2,
+  HeartHandshake
 } from 'lucide-react';
 import { calculateAge } from '@/utils/validators';
+import { generateGuardianToken, buildGuardianAuthWhatsAppUrl } from '@/utils/whatsapp';
 import { CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, EDUCATION_LEVELS, GENDERS, INTERESTS, STUDY_AREAS, TALENTS_CATEGORIES } from '@/constants/cali';
 import { supabase } from '@/lib/supabase';
+import { CertificateModal } from '@/components/CertificateModal';
 
 // High-fidelity schema
 const formSchema = z.object({
@@ -43,6 +50,9 @@ const formSchema = z.object({
   document_type: z.enum(['CC', 'TI', 'CE', 'PPT']),
   document_number: z.string().min(1, 'El documento es obligatorio'),
   birth_date: z.string().min(1, 'Fecha requerida'),
+  guardian_relationship: z.string().optional(),
+  guardian_name: z.string().optional(),
+  guardian_phone: z.string().optional(),
   gender: z.string().min(1, 'Selecciona género'),
   military_status: z.string().optional(),
   phone: z.string().regex(/^3\d{9}$/, 'Debe tener 10 números, sin puntos ni espacios (Ej: 3001234567)'),
@@ -104,6 +114,31 @@ const formSchema = z.object({
       message: 'Selecciona una opción',
       path: ['military_status']
     });
+  }
+  const youthAge = calculateAge(data.birth_date);
+  if (typeof youthAge === 'number' && youthAge < 18) {
+    if (!data.guardian_relationship || data.guardian_relationship.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Selecciona el parentesco (Mamá, Papá o Acudiente)',
+        path: ['guardian_relationship']
+      });
+    }
+    if (!data.guardian_name || data.guardian_name.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Ingresa el nombre de tu acudiente',
+        path: ['guardian_name']
+      });
+    }
+    const cleanGPhone = (data.guardian_phone || '').replace(/\D/g, '');
+    if (!cleanGPhone || cleanGPhone.length !== 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'WhatsApp del acudiente debe tener 10 dígitos (Ej: 3001234567)',
+        path: ['guardian_phone']
+      });
+    }
   }
   const doc = data.document_number.replace(/\s/g, '');
   
@@ -181,6 +216,7 @@ const QUESTION_STEPS = [
   { id: 'name', title: '¿Cómo te llamas?', fields: ['first_name', 'last_name'], icon: User },
   { id: 'id', title: 'Identificación oficial', fields: ['document_type', 'document_number'], icon: CreditCard },
   { id: 'birth', title: '¿Cuándo naciste?', fields: ['birth_date'], icon: Calendar },
+  { id: 'guardian', title: 'Contacto de tu acudiente', fields: ['guardian_relationship', 'guardian_name', 'guardian_phone'], icon: HeartHandshake },
   { id: 'gender', title: 'Género', fields: ['gender'], icon: User },
   { id: 'military', title: '¿Cuál es su situación militar?', fields: ['military_status'], icon: Shield },
   { id: 'contact', title: '¿Cómo nos comunicamos?', fields: ['phone', 'email'], icon: Phone },
@@ -204,11 +240,25 @@ export default function CharacterizationForm() {
   const [showOrgInfo, setShowOrgInfo] = useState(false);
   const [hasScrolledTalents, setHasScrolledTalents] = useState(false);
   const [hasScrolledStudyArea, setHasScrolledStudyArea] = useState(false);
+  const [submittedUser, setSubmittedUser] = useState<{
+    fullName: string;
+    documentType: string;
+    documentNumber: string;
+    email: string;
+    phone?: string;
+    commune?: string;
+    neighborhood?: string;
+  } | null>(null);
+  const [certificateCode, setCertificateCode] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'already_sent' | 'quota_exceeded' | 'error'>('idle');
   const navigate = useNavigate();
 
   const { control, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
       defaultValues: {
+        guardian_relationship: '',
+        guardian_name: '',
+        guardian_phone: '',
         interests: [],
         is_working: false,
         is_internal: false,
@@ -332,6 +382,8 @@ export default function CharacterizationForm() {
       while (nextIndex < QUESTION_STEPS.length) {
         if (QUESTION_STEPS[nextIndex].id === 'church' && watch('registration_source') !== 'Iglesia') {
           nextIndex++;
+        } else if (QUESTION_STEPS[nextIndex].id === 'guardian' && numAge >= 18) {
+          nextIndex++;
         } else if (QUESTION_STEPS[nextIndex].id === 'military' && watch('gender') !== 'Masculino') {
           nextIndex++;
         } else {
@@ -347,8 +399,11 @@ export default function CharacterizationForm() {
   const prevStep = () => {
     if (stepIndex > 0) {
       let prevIndex = stepIndex - 1;
+      const numAge = typeof age === 'number' ? age : 0;
       while (prevIndex >= 0) {
         if (QUESTION_STEPS[prevIndex].id === 'church' && watch('registration_source') !== 'Iglesia') {
+          prevIndex--;
+        } else if (QUESTION_STEPS[prevIndex].id === 'guardian' && numAge >= 18) {
           prevIndex--;
         } else if (QUESTION_STEPS[prevIndex].id === 'military' && watch('gender') !== 'Masculino') {
           prevIndex--;
@@ -381,6 +436,10 @@ export default function CharacterizationForm() {
         church_headquarters: data.registration_source === 'Iglesia' ? (data.church_headquarters === 'OTRO' ? data.other_church_headquarters : data.church_headquarters) : null,
         is_internal: data.registration_source === 'Iglesia',
         military_status: data.gender === 'Masculino' ? data.military_status : null,
+        guardian_relationship: (typeof age === 'number' && age < 18) ? (data.guardian_relationship || null) : null,
+        guardian_name: (typeof age === 'number' && age < 18) ? (data.guardian_name ? data.guardian_name.trim() : null) : null,
+        guardian_phone: (typeof age === 'number' && age < 18) ? (data.guardian_phone ? data.guardian_phone.replace(/\D/g, '') : null) : null,
+        guardian_token: (typeof age === 'number' && age < 18) ? generateGuardianToken() : null,
         talents: (() => {
           const arr = Array.isArray(data.talents) ? [...data.talents] : [];
           if (data.other_talent && data.other_talent.trim().length > 0) {
@@ -391,6 +450,9 @@ export default function CharacterizationForm() {
         open_comments: data.open_comments || null
       };
 
+      const isMinor = typeof age === 'number' && age < 18;
+      const guardianToken = payload.guardian_token;
+
       delete (payload as any).other_church_headquarters;
       delete (payload as any).other_registration_source;
       delete (payload as any).other_talent;
@@ -398,7 +460,7 @@ export default function CharacterizationForm() {
       
       console.log('Enviando datos a Supabase:', payload);
       
-      const { error: supabaseError } = await supabase.rpc('upsert_record_safely', {
+      const { data: upsertResult, error: supabaseError } = await supabase.rpc('upsert_record_safely', {
         payload: payload
       });
 
@@ -406,9 +468,101 @@ export default function CharacterizationForm() {
         console.error('Error detallado de Supabase:', supabaseError);
         throw new Error(supabaseError.message || 'Error desconocido al guardar');
       }
+
+      // Si es menor de edad, aseguramos guardar el token y estado en characterization_records
+      if (isMinor && guardianToken && supabase) {
+        try {
+          await supabase.from('characterization_records')
+            .update({ 
+              guardian_token: guardianToken,
+              guardian_contact_status: 'pending'
+            })
+            .eq('document_number', data.document_number);
+        } catch (errToken) {
+          console.warn('Nota guardando guardian_token:', errToken);
+        }
+      }
       
-      console.log('Registro exitoso');
+      console.log('Registro exitoso. Respuesta:', upsertResult);
+      const fullName = `${data.first_name} ${data.last_name}`.trim();
+      const codeFromDb = upsertResult?.certificate_code || null;
+      if (codeFromDb) {
+        setCertificateCode(codeFromDb);
+      }
+
+      const userCertData = {
+        fullName,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        documentType: data.document_type,
+        documentNumber: data.document_number,
+        email: data.email,
+        phone: data.phone,
+        commune: data.commune,
+        neighborhood: data.neighborhood,
+        code: codeFromDb || undefined,
+        isMinor,
+        age,
+        gender: data.gender,
+        guardianName: data.guardian_name,
+        guardianPhone: data.guardian_phone,
+        guardianRelationship: data.guardian_relationship,
+        guardianToken: guardianToken
+      };
+      setSubmittedUser(userCertData);
       setIsCompleted(true);
+
+      const dispatchStatus = upsertResult?.dispatch_status || 'can_send';
+
+      // 1. Si ya se le había enviado antes un certificado a este documento -> No gastar cupo
+      if (dispatchStatus === 'already_sent') {
+        console.log('Certificado ya enviado previamente a este documento.');
+        setEmailStatus('already_sent');
+        return;
+      }
+
+      // 2. Si se alcanzó el límite diario protegido (95 correos hoy) -> Proteger cupo
+      if (dispatchStatus === 'quota_exceeded') {
+        console.warn('Límite de 95 correos diarios alcanzado. Guardado como pendiente.');
+        setEmailStatus('quota_exceeded');
+        return;
+      }
+
+      // 3. Si hay cupo disponible y es su primera vez -> Enviar por Resend
+      if (data.email) {
+        setEmailStatus('sending');
+        fetch('/api/send-certificate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userCertData),
+        })
+          .then(async (res) => {
+            const resData = await res.json().catch(() => ({}));
+            if (res.ok && resData.success !== false) {
+              setEmailStatus('sent');
+              const finalCode = resData.code || codeFromDb;
+              if (finalCode) setCertificateCode(finalCode);
+
+              // Marcar en Supabase que el certificado fue enviado con éxito
+              try {
+                await supabase.rpc('mark_certificate_sent', {
+                  doc_type: data.document_type,
+                  doc_number: data.document_number,
+                  cert_code: finalCode,
+                });
+              } catch (err) {
+                console.warn('Aviso al actualizar estado en Supabase:', err);
+              }
+            } else {
+              console.warn('Advertencia en envío de certificado:', resData);
+              setEmailStatus('error');
+            }
+          })
+          .catch((err) => {
+            console.error('Error al enviar certificado por correo:', err);
+            setEmailStatus('error');
+          });
+      }
     } catch (err: any) {
       console.error('Captura de error en onSubmit:', err);
       toast.error('Error al guardar: ' + err.message);
@@ -418,7 +572,14 @@ export default function CharacterizationForm() {
   };
 
   if (isCompleted) {
-    return <SuccessScreen onExit={() => navigate('/')} />;
+    return (
+      <SuccessScreen 
+        onExit={() => navigate('/')} 
+        submittedUser={submittedUser}
+        emailStatus={emailStatus}
+        certificateCode={certificateCode}
+      />
+    );
   }
 
   const progress = (stepIndex / (QUESTION_STEPS.length - 1)) * 100;
@@ -695,6 +856,105 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
               <span className="text-4xl font-black italic text-primary animate-in zoom-in">{age} AÑOS</span>
             </div>
           )}
+        </div>
+      );
+    case 'guardian':
+      const guardianRoles = ['Mamá', 'Papá', 'Acudiente / Tutor'];
+      return (
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 space-y-1 text-center">
+            <p className="text-xs font-black uppercase text-primary tracking-wider flex items-center justify-center gap-1.5">
+              ¡Qué alegría tenerte con nosotros! 👨‍👩‍👧💙
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Al ser menor de edad (<strong className="text-foreground">{age} años</strong>), por tu seguridad y bienestar requerimos los datos de tu acudiente para validar tu participación.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+              ¿Quién es tu acudiente?
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {guardianRoles.map(role => (
+                <button
+                  type="button"
+                  key={role}
+                  onClick={() => setValue('guardian_relationship', role, { shouldValidate: true })}
+                  className={`py-3 px-2 rounded-2xl font-bold text-xs border text-center transition-all ${
+                    watch('guardian_relationship') === role
+                      ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+                      : 'glass border-foreground/10 hover:border-primary/50 text-foreground'
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+            {errors.guardian_relationship && (
+              <p className="text-rose-500 text-[10px] font-bold pl-2">
+                {errors.guardian_relationship.message as string}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+              Nombre y apellido de tu acudiente
+            </Label>
+            <Controller
+              name="guardian_name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  type="text"
+                  placeholder="Ej: María Elena Gómez"
+                  className={inputClass}
+                  autoComplete="off"
+                />
+              )}
+            />
+            {errors.guardian_name && (
+              <p className="text-rose-500 text-[10px] font-bold pl-2">
+                {errors.guardian_name.message as string}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+              WhatsApp / Celular de tu acudiente
+            </Label>
+            <div className="relative flex items-center">
+              <span className="absolute left-4 text-xs font-bold text-muted-foreground select-none pointer-events-none">
+                🇨🇴 +57
+              </span>
+              <Controller
+                name="guardian_phone"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="300 123 4567"
+                    className={`${inputClass} pl-20`}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      field.onChange(val);
+                    }}
+                  />
+                )}
+              />
+            </div>
+            {errors.guardian_phone && (
+              <p className="text-rose-500 text-[10px] font-bold pl-2">
+                {errors.guardian_phone.message as string}
+              </p>
+            )}
+          </div>
         </div>
       );
     case 'gender':
@@ -1594,9 +1854,21 @@ function SelectablePill({ label, active, onClick }: SelectableCardProps) {
   );
 }
 
-function SuccessScreen({ onExit }: { onExit: () => void }) {
+function SuccessScreen({ 
+  onExit,
+  submittedUser,
+  emailStatus = 'idle',
+  certificateCode
+}: { 
+  onExit: () => void;
+  submittedUser?: any;
+  emailStatus?: 'idle' | 'sending' | 'sent' | 'already_sent' | 'quota_exceeded' | 'error';
+  certificateCode?: string | null;
+}) {
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 bg-background relative overflow-hidden transition-colors duration-300">
        {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-primary/5 rounded-full blur-[120px]" />
@@ -1605,32 +1877,147 @@ function SuccessScreen({ onExit }: { onExit: () => void }) {
       <motion.div 
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="max-w-md w-full p-12 text-center space-y-10"
+        className="max-w-md w-full p-8 sm:p-10 text-center space-y-8 bg-card/40 backdrop-blur-md rounded-3xl border border-foreground/5 shadow-xl"
       >
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", damping: 12 }}
-          className="w-24 h-24 bg-primary text-white rounded-full mx-auto flex items-center justify-center shadow-2xl"
-        >
-           <CheckCircle2 className="w-12 h-12" />
+          className="w-20 h-20 sm:w-24 sm:h-24 bg-primary text-white rounded-full mx-auto flex items-center justify-center shadow-2xl"
+        > 
+           <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12" />
         </motion.div>
         
-        <div className="space-y-4">
-           <h2 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase italic text-foreground leading-none">¡Registrado!</h2>
-           <p className="text-muted-foreground/60 text-sm font-bold uppercase tracking-widest leading-relaxed">
+        <div className="space-y-3">
+           <h2 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase italic text-foreground leading-none">¡Registrado!</h2>
+           <p className="text-muted-foreground text-xs sm:text-sm font-bold uppercase tracking-widest leading-relaxed">
              Tus respuestas han sido procesadas correctamente.
            </p>
         </div>
 
-        <Button 
-          onClick={onExit}
-          size="lg"
-          className="w-full h-16 rounded-2xl font-black text-lg shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all mira-blue-glow"
-        >
-          FINALIZAR
-        </Button>
+        {/* Resend Email Status Notification */}
+        {submittedUser?.email && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-2xl border text-xs leading-relaxed space-y-1 bg-background/80 shadow-sm text-left flex items-start gap-3 border-foreground/10"
+          >
+            <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
+              {emailStatus === 'sending' ? (
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              ) : emailStatus === 'sent' ? (
+                <Mail className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              ) : emailStatus === 'already_sent' ? (
+                <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              ) : emailStatus === 'quota_exceeded' ? (
+                <Award className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <Mail className="w-4 h-4 text-primary" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-extrabold uppercase tracking-wider text-[11px] text-foreground">
+                {emailStatus === 'sending' && 'Enviando certificado oficial...'}
+                {emailStatus === 'sent' && '¡Certificado enviado a tu correo!'}
+                {emailStatus === 'already_sent' && 'Certificado generado previamente'}
+                {emailStatus === 'quota_exceeded' && 'Certificado digital oficial listo'}
+                {emailStatus === 'error' && 'Constancia lista para descargar'}
+                {emailStatus === 'idle' && 'Certificado oficial generado'}
+              </div>
+              <p className="text-muted-foreground text-[11px] leading-tight">
+                {emailStatus === 'already_sent'
+                  ? 'Tu documento ya cuenta con un certificado registrado. Puedes descargarlo aquí abajo.'
+                  : emailStatus === 'quota_exceeded'
+                  ? 'Por cupo diario, descárgalo directamente aquí. Tu constancia es 100% válida.'
+                  : emailStatus === 'sent'
+                  ? `Enviado satisfactoriamente a ${submittedUser.email}`
+                  : submittedUser.email}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Autorización de Acudiente Requerida para Menores */}
+        {submittedUser?.isMinor && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-5 rounded-3xl border border-amber-500/30 bg-amber-500/10 text-left space-y-3 shadow-md"
+          >
+            <div className="flex items-center gap-2 text-amber-500 font-black text-xs uppercase tracking-wider">
+              <HeartHandshake className="w-4 h-4 text-amber-500" />
+              <span>Autorización de Acudiente Requerida</span>
+            </div>
+            
+            <p className="text-xs text-foreground/80 leading-relaxed">
+              Como eres menor de edad ({submittedUser.age} años), tu {submittedUser.guardianRelationship || 'acudiente'} (<strong>{submittedUser.guardianName || 'responsable'}</strong>) debe confirmar tu participación mediante firma digital.
+            </p>
+
+            <div className="pt-1">
+              <Button
+                type="button"
+                onClick={() => {
+                  const url = buildGuardianAuthWhatsAppUrl({
+                    first_name: submittedUser.firstName,
+                    last_name: submittedUser.lastName,
+                    age: submittedUser.age,
+                    gender: submittedUser.gender,
+                    guardian_name: submittedUser.guardianName,
+                    guardian_phone: submittedUser.guardianPhone,
+                    guardian_relationship: submittedUser.guardianRelationship,
+                    guardian_token: submittedUser.guardianToken
+                  });
+                  window.open(url, '_blank');
+                }}
+                className="w-full h-12 rounded-2xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Enviar a mi acudiente por WhatsApp
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3 pt-2">
+          {submittedUser && (
+            <Button
+              type="button"
+              onClick={() => setShowCertificateModal(true)}
+              variant="outline"
+              size="lg"
+              className="w-full h-14 rounded-2xl font-black text-sm tracking-wider uppercase border-2 border-primary/30 hover:bg-primary/5 hover:border-primary text-primary transition-all flex items-center justify-center gap-2"
+            >
+              <Award className="w-4 h-4" />
+              Ver mi Certificado Digital
+            </Button>
+          )}
+
+          <Button 
+            onClick={onExit}
+            size="lg"
+            className="w-full h-14 sm:h-16 rounded-2xl font-black text-base sm:text-lg shadow-2xl bg-primary text-white hover:bg-primary/90 transition-all mira-blue-glow"
+          >
+            FINALIZAR
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Certificate Modal */}
+      {submittedUser && (
+        <CertificateModal
+          isOpen={showCertificateModal}
+          onClose={() => setShowCertificateModal(false)}
+          data={{
+            fullName: submittedUser.fullName,
+            documentType: submittedUser.documentType,
+            documentNumber: submittedUser.documentNumber,
+            commune: submittedUser.commune,
+            neighborhood: submittedUser.neighborhood,
+            code: certificateCode || undefined,
+          }}
+        />
+      )}
     </div>
   );
 }

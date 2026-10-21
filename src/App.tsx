@@ -13,7 +13,10 @@ import AdminDashboard from '@/modules/admin/AdminDashboard';
 import AdminLogin from '@/modules/admin/AdminLogin';
 import AdminLayout from '@/modules/admin/AdminLayout';
 import RegistrosPage from '@/modules/admin/RegistrosPage';
+import PadresPage from '@/modules/admin/PadresPage';
+import CertificadosPage from '@/modules/admin/CertificadosPage';
 import SettingsPage from '@/modules/admin/SettingsPage';
+import AutorizacionPadrePage from '@/modules/autorizacion/AutorizacionPadrePage';
 import { supabase } from '@/lib/supabase';
 import { AlertCircle } from 'lucide-react';
 
@@ -46,6 +49,8 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/encuesta" element={<CharacterizationForm />} />
+          <Route path="/autorizacion" element={<AutorizacionPadrePage />} />
+          <Route path="/autorizacion/:token" element={<AutorizacionPadrePage />} />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -53,6 +58,8 @@ export default function App() {
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="registros" element={<RegistrosPage />} />
+            <Route path="padres" element={<PadresPage />} />
+            <Route path="certificados" element={<CertificadosPage />} />
             <Route path="config" element={<SettingsPage />} />
           </Route>
 

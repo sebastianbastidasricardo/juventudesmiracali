@@ -27,9 +27,16 @@ import {
   Eye,
   Trash2,
   Info,
-  Sparkles
+  Sparkles,
+  Mail,
+  CheckCircle2,
+  AlertTriangle,
+  Send,
+  MessageCircle,
+  HeartHandshake
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { buildGuardianWhatsAppUrl } from '@/utils/whatsapp';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { 
@@ -179,6 +186,50 @@ export default function RegistrosPage() {
       toast.success('Registro eliminado correctamente');
       fetchRegistros();
       setIsDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleResendCertificate = async (registro: any) => {
+    if (!registro.email) {
+      toast.error('Este registro no tiene un correo electrónico configurado.');
+      return;
+    }
+
+    const toastId = toast.loading(`Enviando certificado a ${registro.email}...`);
+    try {
+      const fullName = `${registro.first_name || ''} ${registro.last_name || ''}`.trim();
+      const res = await fetch('/api/send-certificate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          documentType: registro.document_type,
+          documentNumber: registro.document_number,
+          email: registro.email,
+          commune: registro.commune,
+          neighborhood: registro.neighborhood,
+          code: registro.certificate_code,
+        }),
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (res.ok && resData.success !== false) {
+        const finalCode = resData.code || registro.certificate_code;
+        await supabase?.rpc('mark_certificate_sent', {
+          doc_type: registro.document_type,
+          doc_number: registro.document_number,
+          cert_code: finalCode,
+        });
+        toast.dismiss(toastId);
+        toast.success(`Certificado enviado exitosamente a ${registro.email}`);
+        fetchRegistros();
+      } else {
+        toast.dismiss(toastId);
+        toast.error(resData.error || 'Error al enviar certificado por correo.');
+      }
+    } catch (err: any) {
+      toast.dismiss(toastId);
+      toast.error('Error de conexión al enviar: ' + err.message);
     }
   };
 
@@ -698,6 +749,27 @@ export default function RegistrosPage() {
                                  {registro.first_name} {registro.last_name}
                               </span>
                               <span className="text-[10px] opacity-40 font-mono italic truncate">{registro.email}</span>
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                {registro.certificate_sent ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    <CheckCircle2 className="w-2.5 h-2.5" /> Certificado Enviado
+                                  </span>
+                                ) : registro.certificate_status === 'pending_quota' ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> En espera (Cupo)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-foreground/5 text-muted-foreground border border-foreground/10">
+                                    <Mail className="w-2.5 h-2.5" /> Sin enviar
+                                  </span>
+                                )}
+
+                                {((typeof registro.age === 'number' && registro.age < 18) || registro.guardian_phone) && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <HeartHandshake className="w-2.5 h-2.5" /> Menor ({registro.guardian_relationship || 'Acudiente'})
+                                  </span>
+                                )}
+                              </div>
                            </div>
                         </div>
                       </TableCell>
@@ -721,10 +793,28 @@ export default function RegistrosPage() {
                             <span className="font-mono text-[10px] opacity-70 tracking-widest">{registro.document_number}</span>
                          </div>
                       </TableCell>
-                      <TableCell className="text-right h-20 w-16">
+                      <TableCell className="text-right h-20 w-24">
+                        <div className="flex items-center justify-end gap-1">
+                          {((typeof registro.age === 'number' && registro.age < 18) || registro.guardian_phone) && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl"
+                              title={`WhatsApp Acudiente (${registro.guardian_name || 'Padre/Tutor'})`}
+                              onClick={() => {
+                                if (!registro.guardian_phone) {
+                                  toast.error('Sin número de WhatsApp de acudiente');
+                                  return;
+                                }
+                                window.open(buildGuardianWhatsAppUrl(registro), '_blank');
+                              }}
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                            </Button>
+                          )}
                           <DropdownMenu>
                            <DropdownMenuTrigger className="outline-none">
-                             <div className="inline-flex items-center justify-center h-10 w-10 rounded-xl opacity-40 hover:opacity-100 hover:bg-foreground/5 transition-all">
+                             <div className="inline-flex items-center justify-center h-9 w-9 rounded-xl opacity-40 hover:opacity-100 hover:bg-foreground/5 transition-all">
                                <MoreHorizontal className="h-5 w-5" />
                              </div>
                            </DropdownMenuTrigger>
@@ -738,6 +828,20 @@ export default function RegistrosPage() {
                              >
                                <div className="p-1.5 bg-primary/10 rounded-lg"><Eye className="h-3.5 w-3.5" /></div> Ver Detalles
                              </DropdownMenuItem>
+                             {((typeof registro.age === 'number' && registro.age < 18) || registro.guardian_phone) && (
+                               <DropdownMenuItem 
+                                 onClick={() => {
+                                   if (!registro.guardian_phone) {
+                                     toast.error('Sin número de WhatsApp de acudiente');
+                                     return;
+                                   }
+                                   window.open(buildGuardianWhatsAppUrl(registro), '_blank');
+                                 }}
+                                 className="gap-3 cursor-pointer text-emerald-500 focus:bg-emerald-500/20 focus:text-emerald-500 rounded-xl py-3 font-bold text-xs"
+                               >
+                                 <div className="p-1.5 bg-emerald-500/10 rounded-lg"><MessageCircle className="h-3.5 w-3.5 text-emerald-500" /></div> WhatsApp Acudiente
+                               </DropdownMenuItem>
+                             )}
                              <DropdownMenuItem 
                                onClick={() => {
                                  setSelectedRecord(registro);
@@ -746,6 +850,12 @@ export default function RegistrosPage() {
                                className="gap-3 cursor-pointer focus:bg-blue-500/20 focus:text-blue-500 rounded-xl py-3 font-bold text-xs"
                              >
                                <div className="p-1.5 bg-blue-500/10 rounded-lg"><Info className="h-3.5 w-3.5" /></div> Editar
+                             </DropdownMenuItem>
+                             <DropdownMenuItem 
+                               onClick={() => handleResendCertificate(registro)}
+                               className="gap-3 cursor-pointer focus:bg-emerald-500/20 focus:text-emerald-500 rounded-xl py-3 font-bold text-xs"
+                             >
+                               <div className="p-1.5 bg-emerald-500/10 rounded-lg"><Mail className="h-3.5 w-3.5 text-emerald-500" /></div> Reenviar Certificado
                              </DropdownMenuItem>
                              <DropdownMenuItem 
                                onClick={() => {
@@ -758,6 +868,7 @@ export default function RegistrosPage() {
                              </DropdownMenuItem>
                            </DropdownMenuContent>
                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </motion.tr>
                   ))
@@ -855,6 +966,40 @@ export default function RegistrosPage() {
                     <span className="text-sm font-bold text-foreground/80 break-all leading-snug">{selectedRecord.neighborhood || 'N/A'}</span>
                   </div>
                 </DetailSection>
+
+                {(selectedRecord.guardian_phone || selectedRecord.guardian_name || selectedRecord.guardian_id_number || (typeof selectedRecord.age === 'number' && selectedRecord.age < 18)) && (
+                  <DetailSection title="Acudiente y Contacto Familiar">
+                    <DetailItem label="Parentesco" value={selectedRecord.guardian_relationship || 'No especificado'} />
+                    <DetailItem label="Nombre Acudiente" value={selectedRecord.guardian_name || 'No especificado'} />
+                    {selectedRecord.guardian_id_number && (
+                      <DetailItem label="Cédula Acudiente" value={selectedRecord.guardian_id_number} />
+                    )}
+                    {selectedRecord.guardian_contact_status && (
+                      <DetailItem 
+                        label="Estado de Consentimiento" 
+                        value={
+                          selectedRecord.guardian_contact_status === 'authorized' 
+                            ? '✅ Permiso OK (Autorizado)' 
+                            : selectedRecord.guardian_contact_status === 'contacted' 
+                            ? '📩 Ya contactado' 
+                            : '⏳ Sin escribir'
+                        } 
+                      />
+                    )}
+                    <div className="flex items-center justify-between pt-1">
+                      <DetailItem label="WhatsApp Acudiente" value={selectedRecord.guardian_phone ? `+57 ${selectedRecord.guardian_phone}` : 'Sin registrar'} />
+                      {selectedRecord.guardian_phone && (
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-7 gap-1 font-bold"
+                          onClick={() => window.open(buildGuardianWhatsAppUrl(selectedRecord), '_blank')}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> Chatear
+                        </Button>
+                      )}
+                    </div>
+                  </DetailSection>
+                )}
               </div>
 
               <div className="space-y-4">

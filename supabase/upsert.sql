@@ -13,16 +13,16 @@ BEGIN
   -- Convertimos el payload JSON a una estructura de la tabla (dejamos el ID como nulo)
   new_record := jsonb_populate_record(null::characterization_records, payload);
 
-  -- Buscamos si el tipo y número de documento ya existen en la base de datos
+  -- Buscamos ÚNICAMENTE por número de documento (el número en Colombia es único e invariable de TI a CC)
   SELECT id INTO existing_id
   FROM characterization_records
-  WHERE document_type = new_record.document_type AND document_number = new_record.document_number;
+  WHERE document_number = new_record.document_number;
 
   IF existing_id IS NOT NULL THEN
-     -- SI YA EXISTE: Actualizamos todos los datos, conservando el ID original y su fecha de creación.
-     -- Aquí no se guardan datos viejos mezclados, lo nuevo aplasta a lo viejo 100%.
+     -- SI YA EXISTE: Actualizamos todos los datos (incluyendo el tipo de documento si cambió de TI a CC).
      UPDATE characterization_records
      SET 
+        document_type = new_record.document_type,
         first_name = new_record.first_name,
         last_name = new_record.last_name,
         birth_date = new_record.birth_date,

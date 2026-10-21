@@ -9,6 +9,7 @@ import { Users, UserPlus, MapPin, GraduationCap, TrendingUp, Activity, Sparkles,
 import { supabase } from '@/lib/supabase';
 import { calculateAge } from '@/utils/validators';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 export default function AdminDashboard() {
   const [allData, setAllData] = useState<any[]>([]);
@@ -38,7 +39,16 @@ export default function AdminDashboard() {
           military_status,
           church_headquarters,
           study_area,
-          is_internal
+          is_internal,
+          certificate_sent,
+          certificate_sent_at,
+          certificate_status,
+          certificate_code,
+          first_name,
+          last_name,
+          document_type,
+          document_number,
+          email
         `);
 
       if (error) {
@@ -131,9 +141,17 @@ export default function AdminDashboard() {
 
     const toSortedChartData = (obj: any, limit = 10) => Object.entries(obj).map(([name, value]) => ({ name, value: value as number })).sort((a: any, b: any) => b.value - a.value).slice(0, limit);
 
+    const todayStr = new Date().toDateString();
+    const certsToday = allData.filter(d => d.certificate_sent && d.certificate_sent_at && new Date(d.certificate_sent_at).toDateString() === todayStr).length;
+    const totalCerts = allData.filter(d => d.certificate_sent).length;
+    const pendingQuotaList = allData.filter(d => d.certificate_status === 'pending_quota');
+
     return {
       total,
       newToday: filteredData.filter(d => new Date(d.created_at).toDateString() === new Date().toDateString()).length,
+      certsToday,
+      totalCerts,
+      pendingQuotaList,
       byGender: Object.entries(genres).map(([name, value]) => ({ name, value: value as number })),
       byCommune: toSortedChartData(communes, 10),
       byCommuneAll: toSortedChartData(communes, 100),
