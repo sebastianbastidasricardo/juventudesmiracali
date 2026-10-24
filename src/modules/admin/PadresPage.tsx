@@ -63,9 +63,10 @@ import {
 import { CALI_COMMUNES } from '@/constants/cali';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
-import { Key } from 'lucide-react';
+import { Key, Loader2 } from 'lucide-react';
 import ActaAutorizacionModal from './ActaAutorizacionModal';
 import WhatsAppTemplateModal from './WhatsAppTemplateModal';
+import { downloadActaPdf } from '@/utils/pdfGenerator';
 
 export default function PadresPage() {
   const [loading, setLoading] = useState(true);
@@ -342,6 +343,18 @@ export default function PadresPage() {
     XLSX.utils.book_append_sheet(wb, ws, 'Acudientes_Juventudes_MIRA');
     XLSX.writeFile(wb, `Acudientes_Juventudes_MIRA_Cali_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success('¡Reporte de acudientes exportado exitosamente!');
+  };
+
+  // Descarga directa del Acta Legal en PDF de alta fidelidad
+  const handleDirectDownloadPdf = async (record: any) => {
+    const toastId = toast.loading(`Generando PDF oficial para ${record.first_name}...`);
+    try {
+      await downloadActaPdf(record);
+      toast.success(`¡Acta PDF descargada: ${record.first_name} ${record.last_name}!`, { id: toastId });
+    } catch (e) {
+      console.error('Error generando PDF:', e);
+      toast.error('No se pudo generar el PDF directamente. Puedes abrir el acta y usar Imprimir.', { id: toastId });
+    }
   };
 
   return (
@@ -805,6 +818,14 @@ export default function PadresPage() {
                               <DropdownMenuSeparator className="bg-foreground/5" />
 
                               <DropdownMenuItem
+                                onClick={() => handleDirectDownloadPdf(record)}
+                                className="text-xs font-bold gap-2 rounded-xl py-2 cursor-pointer focus:bg-emerald-500/10 focus:text-emerald-500 text-emerald-500"
+                              >
+                                <Download className="w-3.5 h-3.5 text-emerald-500" />
+                                Descargar PDF Directo
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
                                 onClick={() => {
                                   setSelectedActaRecord(record);
                                   setIsActaOpen(true);
@@ -812,7 +833,7 @@ export default function PadresPage() {
                                 className="text-xs font-bold gap-2 rounded-xl py-2 cursor-pointer focus:bg-primary/10"
                               >
                                 <FileText className="w-3.5 h-3.5 text-primary" />
-                                Descargar Acta Legal PDF
+                                Ver Acta Oficial (Pantalla / Imprimir)
                               </DropdownMenuItem>
 
                               <DropdownMenuItem

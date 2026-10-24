@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -15,9 +15,11 @@ import {
   CheckCircle2, 
   AlertCircle,
   ShieldCheck,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { downloadActaPdf } from '@/utils/pdfGenerator';
 
 interface ActaAutorizacionModalProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ interface ActaAutorizacionModalProps {
 
 export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaAutorizacionModalProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!record) return null;
 
@@ -40,7 +43,22 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
     ? new Date(record.created_at).toLocaleDateString('es-CO', { dateStyle: 'long' })
     : 'Pendiente';
 
-  // Función de impresión aislada: Genera el documento completo sin recortes de scroll ni espacios en blanco
+  // Descarga directa del archivo PDF formal de alta fidelidad
+  const handleDownloadPdf = async () => {
+    setIsDownloading(true);
+    const toastId = toast.loading('Generando documento PDF oficial de alta resolución...');
+    try {
+      await downloadActaPdf(record);
+      toast.success('¡Acta legal descargada con éxito!', { id: toastId });
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      toast.error('No se pudo generar el archivo PDF automáticamente. Intenta con la opción de imprimir.', { id: toastId });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Función de impresión de alta fidelidad: Imprime el documento completo sin recortes
   const handlePrint = () => {
     try {
       const printElement = document.getElementById('printable-acta');
@@ -49,20 +67,32 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
         return;
       }
 
-      // 1. Crear un iframe oculto dedicado a la impresión para evitar recortes por el scroll del modal
-      let printFrame = document.getElementById('acta-print-iframe') as HTMLIFrameElement | null;
-      if (!printFrame) {
-        printFrame = document.createElement('iframe');
-        printFrame.id = 'acta-print-iframe';
-        printFrame.style.position = 'fixed';
-        printFrame.style.right = '0';
-        printFrame.style.bottom = '0';
-        printFrame.style.width = '0';
-        printFrame.style.height = '0';
-        printFrame.style.border = '0';
-        printFrame.style.visibility = 'hidden';
-        document.body.appendChild(printFrame);
+      // 1. Restablecer scroll del modal al inicio para que el contenido no quede recortado
+      const modalScrollContainer = document.querySelector('[role="dialog"]') as HTMLElement | null;
+      if (modalScrollContainer) {
+        modalScrollContainer.scrollTop = 0;
       }
+
+      toast.info('Abriendo diálogo de impresión / Guardar PDF...', { duration: 2500 });
+
+      // 2. Preparar iframe con dimensiones reales y opacidad (sin visibility:hidden ni 0x0 para que Chromium no lo descarte)
+      let printFrame = document.getElementById('acta-print-iframe') as HTMLIFrameElement | null;
+      if (printFrame) {
+        printFrame.remove();
+      }
+
+      printFrame = document.createElement('iframe');
+      printFrame.id = 'acta-print-iframe';
+      printFrame.style.position = 'fixed';
+      printFrame.style.top = '0';
+      printFrame.style.left = '0';
+      printFrame.style.width = '100vw';
+      printFrame.style.height = '100vh';
+      printFrame.style.border = 'none';
+      printFrame.style.opacity = '0.001';
+      printFrame.style.pointerEvents = 'none';
+      printFrame.style.zIndex = '-9999';
+      document.body.appendChild(printFrame);
 
       const frameDoc = printFrame.contentWindow?.document;
       if (!frameDoc) {
@@ -82,7 +112,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
             <style>
               @page {
                 size: letter portrait;
-                margin: 12mm 15mm;
+                margin: 10mm 14mm;
               }
               * {
                 box-sizing: border-box;
@@ -91,15 +121,18 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               }
               body {
-                background: #ffffff;
-                color: #0f172a;
+                background: #ffffff !important;
+                color: #0f172a !important;
                 font-size: 11.5px;
                 line-height: 1.45;
                 padding: 0;
+                margin: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               .border-b-2 { border-bottom: 2px solid #002B79; }
-              .pb-4 { padding-bottom: 12px; }
-              .mb-6 { margin-bottom: 14px; }
+              .pb-4 { padding-bottom: 10px; }
+              .mb-6 { margin-bottom: 12px; }
               .flex { display: flex; }
               .items-start { align-items: flex-start; }
               .items-end { align-items: flex-end; }
@@ -110,7 +143,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
               .font-black { font-weight: 900; }
               .uppercase { text-transform: uppercase; }
               .grid { display: grid; }
-              .grid-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+              .grid-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
               .bg-slate-50 { background-color: #f8fafc; }
               .bg-blue-50 { background-color: #eff6ff; }
               .border { border: 1px solid #cbd5e1; }
@@ -119,7 +152,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
               .p-3 { padding: 10px; }
               .p-3\\.5 { padding: 12px; }
               .pt-4 { padding-top: 12px; }
-              .mt-6 { margin-top: 14px; }
+              .mt-6 { margin-top: 12px; }
               .space-y-4 > * + * { margin-top: 10px; }
               .space-y-2 > * + * { margin-top: 6px; }
               .text-primary { color: #002B79; }
@@ -137,17 +170,27 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
       `);
       frameDoc.close();
 
-      toast.info('Preparando documento completo para imprimir o guardar PDF...', { duration: 2000 });
-
-      // Dar tiempo a cargar imágenes antes de abrir el diálogo de impresión
-      setTimeout(() => {
+      let printed = false;
+      const executePrint = () => {
+        if (printed) return;
+        printed = true;
         try {
-          printFrame?.contentWindow?.focus();
-          printFrame?.contentWindow?.print();
+          const cw = printFrame?.contentWindow;
+          if (cw) {
+            cw.focus();
+            cw.print();
+          } else {
+            window.print();
+          }
         } catch (e) {
+          console.warn('Fallback a window.print():', e);
           window.print();
         }
-      }, 350);
+      };
+
+      // Permitir renderizado de contenido antes de disparar impresión
+      setTimeout(executePrint, 250);
+
     } catch (err) {
       console.error('Error al imprimir:', err);
       window.print();
@@ -270,7 +313,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
                 {/* Cuadro de Firma del Acudiente */}
                 <div className="p-3 rounded-xl border border-slate-300 bg-slate-50/50 flex flex-col justify-between min-h-[140px]">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 block">
-                    Firma del Padre de Familia / Acudiente Responsable:
+                    Firma del Acudiente Responsable:
                   </span>
                   
                   <div className="my-2 flex items-center justify-center min-h-[60px]">
@@ -316,7 +359,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex flex-row items-center justify-between sm:justify-between border-t border-foreground/10 pt-3">
+        <DialogFooter className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-foreground/10 pt-3">
           <Button
             type="button"
             variant="outline"
@@ -326,14 +369,37 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
             Cerrar
           </Button>
 
-          <Button
-            type="button"
-            onClick={handlePrint}
-            className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 flex items-center gap-2 text-xs cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir / Guardar PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrint}
+              className="rounded-xl font-bold border-foreground/15 text-xs flex items-center gap-1.5 cursor-pointer hover:bg-foreground/5"
+              title="Abrir diálogo de impresión del navegador"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 flex items-center gap-2 text-xs cursor-pointer px-4"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Descargar PDF</span>
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

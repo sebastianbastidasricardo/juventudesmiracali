@@ -23,7 +23,8 @@ import {
   MessageCircle,
   ExternalLink,
   Key,
-  Edit3
+  Edit3,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,17 +34,34 @@ import { calculateAge } from '@/utils/validators';
 import { buildParentConfirmationWhatsAppUrl, detectSonOrDaughter } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import ActaAutorizacionModal from '@/modules/admin/ActaAutorizacionModal';
+import { downloadActaPdf } from '@/utils/pdfGenerator';
 
 export default function AutorizacionPadrePage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [record, setRecord] = useState<any | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [searchDoc, setSearchDoc] = useState('');
   const [searching, setSearching] = useState(false);
+
+  const handleDirectDownloadPdf = async () => {
+    if (!record) return;
+    setIsDownloadingPdf(true);
+    const toastId = toast.loading('Generando documento PDF oficial...');
+    try {
+      await downloadActaPdf(record);
+      toast.success('¡Acta legal descargada exitosamente en PDF!', { id: toastId });
+    } catch (e) {
+      console.error('Error generando PDF:', e);
+      toast.error('No se pudo generar el PDF automáticamente.', { id: toastId });
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   // Formulario del acudiente
   const [guardianName, setGuardianName] = useState('');
@@ -541,14 +559,34 @@ export default function AutorizacionPadrePage() {
               </div>
             )}
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+            <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5">
               <Button
                 type="button"
-                onClick={() => setIsActaOpen(true)}
-                className="w-full sm:w-auto rounded-xl font-bold bg-primary hover:bg-primary/90 text-white text-xs flex items-center justify-center gap-2 h-11 px-5 shadow-lg shadow-primary/20"
+                onClick={handleDirectDownloadPdf}
+                disabled={isDownloadingPdf}
+                className="w-full sm:w-auto rounded-xl font-black bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center justify-center gap-2 h-11 px-5 shadow-lg shadow-emerald-600/25 cursor-pointer"
               >
-                <FileText className="w-4 h-4" />
-                Descargar / Ver Acta Legal PDF
+                {isDownloadingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Generando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Descargar PDF Oficial</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsActaOpen(true)}
+                className="w-full sm:w-auto rounded-xl font-bold border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-white text-xs flex items-center justify-center gap-2 h-11 px-4 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 text-primary" />
+                <span>Ver Acta en Pantalla</span>
               </Button>
 
               <Button

@@ -36,7 +36,7 @@ import {
   HeartHandshake
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { buildGuardianWhatsAppUrl } from '@/utils/whatsapp';
+import { buildGuardianWhatsAppUrl, buildYouthWhatsAppUrl } from '@/utils/whatsapp';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { 
@@ -795,30 +795,35 @@ export default function RegistrosPage() {
                       </TableCell>
                       <TableCell className="text-right h-20 w-24">
                         <div className="flex items-center justify-end gap-1">
-                          {((typeof registro.age === 'number' && registro.age < 18) || registro.guardian_phone) && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-9 w-9 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl"
-                              title={`WhatsApp Acudiente (${registro.guardian_name || 'Padre/Tutor'})`}
-                              onClick={() => {
-                                if (!registro.guardian_phone) {
-                                  toast.error('Sin número de WhatsApp de acudiente');
-                                  return;
-                                }
-                                window.open(buildGuardianWhatsAppUrl(registro), '_blank');
-                              }}
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
-                          )}
+                          {/* Botón rápido directo: WhatsApp al Joven */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-9 w-9 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl"
+                            title={`WhatsApp Joven (${registro.first_name || 'Participante'})`}
+                            onClick={() => {
+                              if (!registro.phone) {
+                                toast.error('Sin número de teléfono registrado');
+                                return;
+                              }
+                              const url = buildYouthWhatsAppUrl(registro);
+                              if (url) {
+                                window.open(url, '_blank');
+                              } else {
+                                toast.error('Número de WhatsApp inválido');
+                              }
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+
                           <DropdownMenu>
                            <DropdownMenuTrigger className="outline-none">
                              <div className="inline-flex items-center justify-center h-9 w-9 rounded-xl opacity-40 hover:opacity-100 hover:bg-foreground/5 transition-all">
                                <MoreHorizontal className="h-5 w-5" />
                              </div>
                            </DropdownMenuTrigger>
-                           <DropdownMenuContent align="end" className="glass-dark border-foreground/10 text-foreground w-48 p-2 rounded-2xl shadow-2xl">
+                           <DropdownMenuContent align="end" className="glass-dark border-foreground/10 text-foreground w-52 p-2 rounded-2xl shadow-2xl">
                              <DropdownMenuItem 
                                onClick={() => {
                                  setSelectedRecord(registro);
@@ -828,6 +833,23 @@ export default function RegistrosPage() {
                              >
                                <div className="p-1.5 bg-primary/10 rounded-lg"><Eye className="h-3.5 w-3.5" /></div> Ver Detalles
                              </DropdownMenuItem>
+
+                             {/* WhatsApp Joven en menú de acciones */}
+                             <DropdownMenuItem 
+                               onClick={() => {
+                                 if (!registro.phone) {
+                                   toast.error('Sin número de teléfono registrado');
+                                   return;
+                                 }
+                                 const url = buildYouthWhatsAppUrl(registro);
+                                 if (url) window.open(url, '_blank');
+                               }}
+                               className="gap-3 cursor-pointer text-emerald-500 focus:bg-emerald-500/20 focus:text-emerald-500 rounded-xl py-3 font-bold text-xs"
+                             >
+                               <div className="p-1.5 bg-emerald-500/10 rounded-lg"><MessageCircle className="h-3.5 w-3.5 text-emerald-500" /></div> WhatsApp Joven
+                             </DropdownMenuItem>
+
+                             {/* WhatsApp Acudiente en menú de acciones (si es menor o tiene teléfono de acudiente) */}
                              {((typeof registro.age === 'number' && registro.age < 18) || registro.guardian_phone) && (
                                <DropdownMenuItem 
                                  onClick={() => {
@@ -837,11 +859,12 @@ export default function RegistrosPage() {
                                    }
                                    window.open(buildGuardianWhatsAppUrl(registro), '_blank');
                                  }}
-                                 className="gap-3 cursor-pointer text-emerald-500 focus:bg-emerald-500/20 focus:text-emerald-500 rounded-xl py-3 font-bold text-xs"
+                                 className="gap-3 cursor-pointer text-amber-500 focus:bg-amber-500/20 focus:text-amber-500 rounded-xl py-3 font-bold text-xs"
                                >
-                                 <div className="p-1.5 bg-emerald-500/10 rounded-lg"><MessageCircle className="h-3.5 w-3.5 text-emerald-500" /></div> WhatsApp Acudiente
+                                 <div className="p-1.5 bg-amber-500/10 rounded-lg"><HeartHandshake className="h-3.5 w-3.5 text-amber-500" /></div> WhatsApp Acudiente
                                </DropdownMenuItem>
                              )}
+
                              <DropdownMenuItem 
                                onClick={() => {
                                  setSelectedRecord(registro);
@@ -849,7 +872,7 @@ export default function RegistrosPage() {
                                }}
                                className="gap-3 cursor-pointer focus:bg-blue-500/20 focus:text-blue-500 rounded-xl py-3 font-bold text-xs"
                              >
-                               <div className="p-1.5 bg-blue-500/10 rounded-lg"><Info className="h-3.5 w-3.5" /></div> Editar
+                               <div className="p-1.5 bg-blue-500/10 rounded-lg"><Info className="h-3.5 w-3.5" /></div> Editar Ficha
                              </DropdownMenuItem>
                              <DropdownMenuItem 
                                onClick={() => handleResendCertificate(registro)}

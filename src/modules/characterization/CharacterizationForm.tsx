@@ -43,6 +43,60 @@ import { CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, EDUCATION_LEVELS, GENDERS, INT
 import { supabase } from '@/lib/supabase';
 import { CertificateModal } from '@/components/CertificateModal';
 
+/**
+ * Validador oficial de documentos de identidad de Colombia:
+ * - Cédula de Ciudadanía (C.C.): 6 a 10 dígitos numéricos
+ * - Tarjeta de Identidad (T.I.): 8 a 11 dígitos numéricos (estándar habitual 10 dígitos)
+ * - Cédula de Extranjería / PPT: 6 a 15 caracteres alfanuméricos
+ */
+export function validateDocumentNumber(type: string, value: string): { isValid: boolean; message: string } {
+  const clean = (value || '').trim().replace(/\s/g, '');
+  if (!clean) {
+    return { isValid: false, message: 'Ingresa tu número de documento' };
+  }
+
+  if (type === 'CC') {
+    if (!/^\d+$/.test(clean)) {
+      return { isValid: false, message: 'La Cédula solo debe tener números' };
+    }
+    if (clean.length < 6) {
+      return { isValid: false, message: `La Cédula debe tener mínimo 6 dígitos (llevas ${clean.length})` };
+    }
+    if (clean.length > 10) {
+      return { isValid: false, message: 'La Cédula no puede tener más de 10 dígitos' };
+    }
+    return { isValid: true, message: `Cédula Válida (${clean.length} dígitos)` };
+  }
+
+  if (type === 'TI') {
+    if (!/^\d+$/.test(clean)) {
+      return { isValid: false, message: 'La Tarjeta de Identidad solo debe tener números' };
+    }
+    if (clean.length < 8) {
+      return { isValid: false, message: `La T.I. debe tener mínimo 8 dígitos (llevas ${clean.length}, habitual 10)` };
+    }
+    if (clean.length > 11) {
+      return { isValid: false, message: 'La T.I. no puede tener más de 11 dígitos' };
+    }
+    return { isValid: true, message: `Tarjeta de Identidad Válida (${clean.length} dígitos)` };
+  }
+
+  if (type === 'CE' || type === 'PPT') {
+    if (!/^[a-zA-Z0-9]+$/.test(clean)) {
+      return { isValid: false, message: 'Solo letras y números sin espacios ni símbolos' };
+    }
+    if (clean.length < 6) {
+      return { isValid: false, message: `${type} debe tener mínimo 6 caracteres` };
+    }
+    if (clean.length > 15) {
+      return { isValid: false, message: `${type} no puede superar 15 caracteres` };
+    }
+    return { isValid: true, message: `${type} Válido (${clean.length} caracteres)` };
+  }
+
+  return { isValid: clean.length >= 6, message: 'Identificación válida' };
+}
+
 // High-fidelity schema
 const formSchema = z.object({
   first_name: z.string().min(2, 'Ingresa tus nombres'),
@@ -140,26 +194,13 @@ const formSchema = z.object({
       });
     }
   }
-  const doc = data.document_number.replace(/\s/g, '');
-  
-  if (data.document_type === 'CC') {
-    if (!/^\d+$/.test(doc)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Solo se permiten números para CC', path: ['document_number'] });
-    } else if (doc.length < 6 || doc.length > 10) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'CC debe tener entre 6 y 10 dígitos', path: ['document_number'] });
-    }
-  } else if (data.document_type === 'TI') {
-    if (!/^\d+$/.test(doc)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Solo se permiten números para TI', path: ['document_number'] });
-    } else if (doc.length < 10 || doc.length > 11) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'TI debe tener 10 u 11 dígitos', path: ['document_number'] });
-    }
-  } else if (data.document_type === 'CE' || data.document_type === 'PPT') {
-    if (!/^[a-zA-Z0-9]+$/.test(doc)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Solo letras y números sin símbolos', path: ['document_number'] });
-    } else if (doc.length < 6 || doc.length > 15) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${data.document_type} debe tener entre 6 y 15 caracteres`, path: ['document_number'] });
-    }
+  const docValidation = validateDocumentNumber(data.document_type, data.document_number);
+  if (!docValidation.isValid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: docValidation.message,
+      path: ['document_number']
+    });
   }
 });
 
@@ -253,7 +294,7 @@ export default function CharacterizationForm() {
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'already_sent' | 'quota_exceeded' | 'error'>('idle');
   const navigate = useNavigate();
 
-  const { control, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<FormValues>({
+  const { control, handleSubmit, watch, setValue, trigger, setError, clearErrors, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
       defaultValues: {
         guardian_relationship: '',
@@ -362,10 +403,20 @@ export default function CharacterizationForm() {
     if (currentStep.id === 'id') {
       const docNum = watch('document_number');
       const docType = watch('document_type');
-      
-      if (!supabase) return;
-      
-      // Removed duplicate block check to allow Upsert logic later on submit.
+      const validation = validateDocumentNumber(docType, docNum);
+      if (!validation.isValid) {
+        setError('document_number', {
+          type: 'manual',
+          message: validation.message
+        });
+        const element = document.getElementById('step-container');
+        if (element) {
+          element.classList.add('animate-shake');
+          setTimeout(() => element.classList.remove('animate-shake'), 500);
+        }
+        return;
+      }
+      clearErrors('document_number');
     }
 
     const numAge = typeof age === 'number' ? age : 0;
@@ -684,7 +735,7 @@ export default function CharacterizationForm() {
             </div>
 
             <div className="space-y-4">
-              {renderStepFields(currentStep.id, { control, errors, setValue, watch, age, isSubmitting, hasScrolledTalents, setHasScrolledTalents, hasScrolledStudyArea, setHasScrolledStudyArea })}
+              {renderStepFields(currentStep.id, { control, errors, setValue, watch, age, isSubmitting, hasScrolledTalents, setHasScrolledTalents, hasScrolledStudyArea, setHasScrolledStudyArea, clearErrors, setError })}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -714,7 +765,7 @@ export default function CharacterizationForm() {
   );
 }
 
-function renderStepFields(id: string, { control, errors, setValue, watch, age, isSubmitting, hasScrolledTalents, setHasScrolledTalents, hasScrolledStudyArea, setHasScrolledStudyArea }: any) {
+function renderStepFields(id: string, { control, errors, setValue, watch, age, isSubmitting, hasScrolledTalents, setHasScrolledTalents, hasScrolledStudyArea, setHasScrolledStudyArea, clearErrors, setError }: any) {
   const inputClass = "h-16 bg-foreground/5 border-foreground/30 dark:border-foreground/10 rounded-2xl px-6 text-lg font-bold placeholder:text-foreground/40 dark:placeholder:text-foreground/30 focus:bg-foreground/10 transition-all focus:ring-4 focus:ring-primary/20";
   
   switch (id) {
@@ -766,6 +817,8 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
       );
     case 'id':
       const currentDocType = watch('document_type');
+      const rawDocNum = (watch('document_number') || '').replace(/\s/g, '');
+      const docValidation = validateDocumentNumber(currentDocType, rawDocNum);
       const hasIdError = !!errors.document_number;
       
       return (
@@ -778,6 +831,7 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                 onClick={() => {
                   setValue('document_type', type as any);
                   setValue('document_number', ''); // Clear to avoid confusion
+                  clearErrors('document_number');
                 }}
                 className={`h-14 rounded-2xl font-black text-[10px] tracking-widest transition-all ${currentDocType === type ? 'bg-primary text-white shadow-lg scale-105' : 'bg-foreground/15 dark:bg-foreground/5 border border-foreground/20 dark:border-foreground/10 opacity-80 hover:opacity-100'}`}
               >
@@ -799,7 +853,8 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                     maxLength={currentDocType === 'CC' ? 10 : currentDocType === 'TI' ? 11 : 15}
                     placeholder={
                       currentDocType === 'CC' ? 'Ej: 1118234567' : 
-                      currentDocType === 'TI' ? 'Ej: 11204567890' : 'Número de identificación'
+                      currentDocType === 'TI' ? 'Ej: 1120456789' : 
+                      currentDocType === 'CE' ? 'Ej: 123456' : 'Ej: PPT123456'
                     }
                     className={`${inputClass} ${hasIdError ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-foreground/10 group-focus-within:border-primary'}`}
                     autoComplete="off"
@@ -811,6 +866,9 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                         val = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                       }
                       field.onChange(val);
+                      if (hasIdError) {
+                        clearErrors('document_number');
+                      }
                     }}
                   />
                   <div className={`absolute inset-0 -z-10 rounded-2xl transition-all duration-500 blur-xl ${hasIdError ? 'bg-rose-500/10' : 'bg-primary/5 opacity-0 group-focus-within:opacity-100'}`} />
@@ -818,28 +876,49 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
               )} 
             />
             
-            <AnimatePresence>
-              {hasIdError && (
+            {/* Mensajes de validación en tiempo real */}
+            <AnimatePresence mode="wait">
+              {hasIdError ? (
                 <motion.p
-                  initial={{ opacity: 0, y: -5, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: 'auto' }}
-                  exit={{ opacity: 0, y: -5, height: 0 }}
-                  className="text-rose-500 text-[10px] font-black uppercase tracking-widest pl-4"
+                  key="error"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="text-rose-500 text-[10px] font-black uppercase tracking-wider pl-4 flex items-center gap-1.5"
                 >
-                  {errors.document_number?.message as string}
+                  <span>⚠️</span>
+                  <span>{errors.document_number?.message as string}</span>
                 </motion.p>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {!hasIdError && watch('document_number') && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-primary text-[9px] font-bold uppercase tracking-widest pl-4 opacity-50"
-                >
-                  IDENTIFICACIÓN VÁLIDA
-                </motion.p>
+              ) : rawDocNum ? (
+                docValidation.isValid ? (
+                  <motion.p
+                    key="valid"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="text-emerald-500 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider pl-4 flex items-center gap-1.5"
+                  >
+                    <span>✓</span>
+                    <span>{docValidation.message}</span>
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="hint"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    className="text-amber-500 text-[10px] font-bold tracking-wide pl-4 flex items-center gap-1.5"
+                  >
+                    <span>•</span>
+                    <span>{docValidation.message}</span>
+                  </motion.p>
+                )
+              ) : (
+                <p className="text-[10px] text-muted-foreground/60 pl-4">
+                  {currentDocType === 'CC' ? 'Cédula de Ciudadanía: entre 6 y 10 dígitos numéricos' :
+                   currentDocType === 'TI' ? 'Tarjeta de Identidad: entre 8 y 10 dígitos numéricos' :
+                   'Entre 6 y 15 caracteres alfanuméricos'}
+                </p>
               )}
             </AnimatePresence>
           </div>

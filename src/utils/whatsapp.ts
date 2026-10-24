@@ -255,3 +255,21 @@ Les confirmo que soy *${guardianName}*, acudiente de *${youthName}*, y acabo de 
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * TEMPLATE 6: Contacto directo por WhatsApp al Joven participante
+ */
+export function buildYouthWhatsAppUrl(record: { first_name?: string; last_name?: string; phone?: string; commune?: string; neighborhood?: string }): string {
+  const phone = getNormalizedColombianPhone(record.phone);
+  if (!phone) return '';
+  const firstName = (record.first_name || '').trim();
+  const zone = record.commune ? ` de la Comuna ${record.commune}` : '';
+  const message = `¡Hola, *${firstName}*! 👋💙
+
+Te saludamos cordialmente del equipo de *Juventudes MIRA Cali* 🏛️✨.
+
+Esperamos que estés muy bien. Te contactamos con relación a tu registro en nuestra Caracterización Juvenil${zone}. ¡Nos alegra mucho saludarte! 🌟`;
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+
