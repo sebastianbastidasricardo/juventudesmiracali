@@ -81,39 +81,70 @@ export default function AutorizacionPadrePage() {
 
       const cleanParam = tokenOrParam.trim();
 
-      // 1. Buscar por guardian_token
-      let { data, error } = await supabase
-        .from('characterization_records')
-        .select('*')
-        .eq('guardian_token', cleanParam)
-        .maybeSingle();
+      // A. Intentar primero con la función segura (SECURITY DEFINER que bypass RLS)
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_parent_authorization_record', {
+          lookup_query: cleanParam
+        });
+        if (rpcData && !rpcError) {
+          const enriched = {
+            ...rpcData,
+            age: calculateAge(rpcData.birth_date)
+          };
+          setRecord(enriched);
+          setGuardianName(rpcData.guardian_name || '');
+          setGuardianRelationship(rpcData.guardian_relationship || 'Mamá');
+          setGuardianPhone(rpcData.guardian_phone || '');
+          setGuardianIdNumber(rpcData.guardian_id_number || '');
+          setSubmitted(rpcData.guardian_contact_status === 'authorized' || !!rpcData.guardian_signature);
+          setLoading(false);
+          return;
+        }
+      } catch (eRpc) {
+        // Continuar con búsqueda directa
+      }
 
-      // 2. Si no coincide, buscar por ID
-      if (!data && !error) {
-        const fallback = await supabase
+      // B. Búsqueda directa con tolerancia a errores si columnas aún no existen
+      let data: any = null;
+
+      // 1. Buscar por guardian_token (protegido por try/catch si la columna no existe)
+      try {
+        const resToken = await supabase
           .from('characterization_records')
           .select('*')
-          .eq('id', cleanParam)
+          .eq('guardian_token', cleanParam)
           .maybeSingle();
-        data = fallback.data;
-        error = fallback.error;
+        if (resToken.data) data = resToken.data;
+      } catch (e) {}
+
+      // 2. Si no coincide, buscar por ID UUID
+      if (!data && cleanParam.length === 36) {
+        try {
+          const resId = await supabase
+            .from('characterization_records')
+            .select('*')
+            .eq('id', cleanParam)
+            .maybeSingle();
+          if (resId.data) data = resId.data;
+        } catch (e) {}
       }
 
       // 3. Si no coincide, buscar por número de documento (TI del joven)
       if (!data) {
         const cleanDoc = cleanParam.replace(/\D/g, '');
         if (cleanDoc.length >= 6) {
-          const docFallback = await supabase
-            .from('characterization_records')
-            .select('*')
-            .eq('document_number', cleanDoc)
-            .maybeSingle();
-          data = docFallback.data;
-          error = docFallback.error;
+          try {
+            const resDoc = await supabase
+              .from('characterization_records')
+              .select('*')
+              .eq('document_number', cleanDoc)
+              .maybeSingle();
+            if (resDoc.data) data = resDoc.data;
+          } catch (e) {}
         }
       }
 
-      if (error || !data) {
+      if (!data) {
         setNotFound(true);
       } else {
         const enriched = {
@@ -273,21 +304,41 @@ export default function AutorizacionPadrePage() {
 
       const cleanPhone = guardianPhone.replace(/\D/g, '');
 
-      const { error } = await supabase
-        .from('characterization_records')
-        .update({
-          guardian_name: guardianName.trim(),
-          guardian_relationship: guardianRelationship,
-          guardian_id_number: cleanId,
-          guardian_phone: cleanPhone,
-          guardian_signature: signatureDataUrl,
-          guardian_contact_status: 'authorized',
-          guardian_authorized_at: nowIso,
-        })
-        .eq('id', record.id);
+      // 1. Intentar guardar mediante RPC con SECURITY DEFINER (bypasea restricciones de RLS)
+      let savedViaRpc = false;
+      try {
+        const { data: rpcSave, error: rpcSaveErr } = await supabase.rpc('save_parent_authorization', {
+          record_id: record.id,
+          g_name: guardianName.trim(),
+          g_relationship: guardianRelationship,
+          g_id_number: cleanId,
+          g_phone: cleanPhone,
+          g_signature: signatureDataUrl
+        });
 
-      if (error) {
-        console.warn('Advertencia al guardar:', error.message);
+        if (!rpcSaveErr && rpcSave && rpcSave.success !== false) {
+          savedViaRpc = true;
+        }
+      } catch (eRpc) {}
+
+      // 2. Si no se guardó por RPC, usar fallback directo
+      if (!savedViaRpc) {
+        const { error } = await supabase
+          .from('characterization_records')
+          .update({
+            guardian_name: guardianName.trim(),
+            guardian_relationship: guardianRelationship,
+            guardian_id_number: cleanId,
+            guardian_phone: cleanPhone,
+            guardian_signature: signatureDataUrl,
+            guardian_contact_status: 'authorized',
+            guardian_authorized_at: nowIso,
+          })
+          .eq('id', record.id);
+
+        if (error) {
+          console.warn('Advertencia al guardar directamente:', error.message);
+        }
       }
 
       const updatedRecord = {

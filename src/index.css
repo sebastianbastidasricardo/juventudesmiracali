@@ -169,19 +169,27 @@
 }
 
 @media print {
-  body * {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  body > * {
     visibility: hidden;
   }
+  #acta-print-iframe {
+    visibility: visible !important;
+    display: block !important;
+  }
   #printable-acta, #printable-acta * {
-    visibility: visible;
+    visibility: visible !important;
   }
   #printable-acta {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm 15mm !important;
     border: none !important;
     box-shadow: none !important;
     background: white !important;
