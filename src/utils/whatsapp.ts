@@ -100,10 +100,10 @@ export function getPublicBaseUrl(origin?: string): string {
     // 3. Si está en el entorno de desarrollo privado de Google AI Studio (ais-dev-...)
     // El enlace en WhatsApp no debe llevar a ais-dev porque Google da "Page Not Found".
     // Por defecto usamos el dominio oficial en Cloudflare Pages
-    return 'https://miravejuventudescali.pages.dev';
+    return 'https://miravecaliesdetodos.pages.dev';
   }
 
-  return 'https://miravejuventudescali.pages.dev';
+  return 'https://miravecaliesdetodos.pages.dev';
 }
 
 /**

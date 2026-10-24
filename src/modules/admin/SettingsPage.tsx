@@ -92,7 +92,7 @@ export default function SettingsPage() {
                  <Input 
                    value={domainUrl}
                    onChange={(e) => setDomainUrl(e.target.value)}
-                   placeholder="https://miravejuventudescali.pages.dev"
+                   placeholder="https://miravecaliesdetodos.pages.dev"
                    className="h-11 font-mono text-xs bg-background/60"
                  />
                  <Button 
@@ -103,7 +103,7 @@ export default function SettingsPage() {
                  </Button>
                </div>
                <p className="text-[11px] text-muted-foreground pt-1">
-                 Ejemplo: <code className="bg-foreground/5 px-1.5 py-0.5 rounded font-mono text-primary font-bold">https://miravejuventudescali.pages.dev</code>
+                 Ejemplo: <code className="bg-foreground/5 px-1.5 py-0.5 rounded font-mono text-primary font-bold">https://miravecaliesdetodos.pages.dev</code>
                </p>
              </div>
 
@@ -111,11 +111,11 @@ export default function SettingsPage() {
                <div className="text-xs">
                  <span className="text-muted-foreground block text-[10px]">Ejemplo de enlace para padres:</span>
                  <span className="font-mono text-primary text-[11px] font-bold truncate block max-w-xs">
-                   {domainUrl || 'https://miravejuventudescali.pages.dev'}/autorizacion/jm_demo123
+                   {domainUrl || 'https://miravecaliesdetodos.pages.dev'}/autorizacion/jm_demo123
                  </span>
                </div>
                <a 
-                 href={domainUrl ? `${domainUrl}/autorizacion` : 'https://miravejuventudescali.pages.dev/autorizacion'}
+                 href={domainUrl ? `${domainUrl}/autorizacion` : 'https://miravecaliesdetodos.pages.dev/autorizacion'}
                  target="_blank" 
                  rel="noreferrer"
                  className="p-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center gap-1 text-xs font-bold shrink-0 ml-2"

@@ -345,7 +345,7 @@ export default function WhatsAppTemplateModal({
               <Input
                 value={domainInput}
                 onChange={(e) => setDomainInput(e.target.value)}
-                placeholder="https://miravejuventudescali.pages.dev"
+                placeholder="https://miravecaliesdetodos.pages.dev"
                 className="h-8 text-xs font-mono bg-background"
               />
               <Button
