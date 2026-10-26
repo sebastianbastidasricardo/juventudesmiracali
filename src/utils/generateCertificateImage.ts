@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { getPublicBaseUrl } from '@/utils/whatsapp';
 
 export interface GenerateCertificateParams {
   fullName: string;
@@ -21,9 +22,8 @@ export async function generateCertificateBase64(params: GenerateCertificateParam
   const docInfo = `${params.documentType || 'CC'} ${params.documentNumber || 'N/A'}`.trim().toUpperCase();
   const radicado = (params.code || 'MIRA-CL-2026-VAL').trim().toUpperCase();
 
-  const verificationUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/verificar?radicado=${encodeURIComponent(radicado)}`
-    : `https://miravejuventudescali.site/verificar?radicado=${encodeURIComponent(radicado)}`;
+  const baseUrl = getPublicBaseUrl();
+  const verificationUrl = `${baseUrl}/verificar?radicado=${encodeURIComponent(radicado)}`;
 
   // 1. Generar código QR dinámico
   let qrDataUrl = '';

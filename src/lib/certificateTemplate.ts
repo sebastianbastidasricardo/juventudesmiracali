@@ -271,7 +271,7 @@ export function generateCertificateHtml(data: CertificateData): string {
         <div class="footer-brand">Movimiento Político MIRA • Juventudes Cali</div>
         <div>Santiago de Cali, Valle del Cauca, Colombia</div>
         <div style="margin-top: 10px; font-size: 11px; color: #94A3B8;">
-          Este es un correo automático generado tras completar el formulario en miravejuventudescali.site • Ley 1581 de Protección de Datos Personales
+          Este es un correo automático generado tras completar el formulario en miravecaliesdetodos.pages.dev • Ley 1581 de Protección de Datos Personales
         </div>
       </div>
     </div>

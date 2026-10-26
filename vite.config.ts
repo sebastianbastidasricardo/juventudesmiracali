@@ -54,7 +54,8 @@ export default defineConfig(({mode}) => {
                     .replace(/[^a-zA-Z0-9]/g, '_')
                     .substring(0, 30);
 
-                  const verificationUrl = `https://miravejuventudescali.site/verificar?radicado=${encodeURIComponent(code)}`;
+                  const publicBaseUrl = (process.env.PUBLIC_APP_URL || 'https://miravecaliesdetodos.pages.dev').replace(/\/+$/, '');
+                  const verificationUrl = `${publicBaseUrl}/verificar?radicado=${encodeURIComponent(code)}`;
 
                   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -150,7 +151,7 @@ export default defineConfig(({mode}) => {
               </div>
               <div>Santiago de Cali, Valle del Cauca, Colombia</div>
               <div style="margin-top:8px;font-size:10px;color:#94A3B8;">
-                Generado automáticamente tras completar el formulario en miravejuventudescali.site • Conforme a la Ley 1581 de Protección de Datos
+                Generado automáticamente tras completar el formulario en miravecaliesdetodos.pages.dev • Conforme a la Ley 1581 de Protección de Datos
               </div>
             </td>
           </tr>

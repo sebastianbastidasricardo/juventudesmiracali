@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
+import { getPublicBaseUrl } from '@/utils/whatsapp';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -57,9 +58,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     : 'Santiago de Cali, Valle del Cauca';
 
   // Build verification link
-  const verificationUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/verificar?radicado=${encodeURIComponent(radicado)}`
-    : `https://miravejuventudescali.site/verificar?radicado=${encodeURIComponent(radicado)}`;
+  const baseUrl = getPublicBaseUrl();
+  const verificationUrl = `${baseUrl}/verificar?radicado=${encodeURIComponent(radicado)}`;
 
   // Generate QR code
   useEffect(() => {
