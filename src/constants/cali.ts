@@ -37,8 +37,9 @@ export const EDUCATION_LEVELS = [
 export const GENDERS = ['Masculino', 'Femenino'];
 
 export const INTERESTS = [
-  'Liderazgo', 'Tecnología', 'Política', 'Deportes', 'Arte',
-  'Cultura', 'Medio ambiente', 'Formación', 'Voluntariado', 'Emprendimiento'
+  'Liderazgo', 'Tecnología', 'Deportes', 'Arte',
+  'Cultura', 'Medio ambiente', 'Emprendimiento', 'Voluntariado',
+  'Formación', 'Política', 'Protección Animal', 'Idiomas y Bilingüismo'
 ];
 
 export const NEIGHBORHOODS_BY_COMMUNE: Record<string, string[]> = {

@@ -230,7 +230,43 @@ const CHURCH_HEADQUARTERS = [
   'YUMBO',
   'OTRO'
 ];
+const STUDY_AREA_EMOJIS: Record<string, string> = {
+  'Tecnología / TI': '💻',
+  'Derecho y Ciencias Políticas': '⚖️',
+  'Salud / Medicina': '🩺',
+  'Ingeniería': '⚙️',
+  'Arte / Diseño': '🎨',
+  'Administración y Negocios': '💼',
+  'Servicio al Cliente y Ventas': '🤝',
+  'Educación': '📚',
+  'Comunicación / Marketing': '📢',
+  'Logística y Operación': '📦',
+  'Otra': '✨'
+};
 
+const INTEREST_EMOJIS: Record<string, string> = {
+  'Liderazgo': '🌟',
+  'Tecnología': '💻',
+  'Deportes': '⚽',
+  'Arte': '🎨',
+  'Cultura': '🎭',
+  'Medio ambiente': '🌿',
+  'Emprendimiento': '🚀',
+  'Voluntariado': '🤝',
+  'Formación': '📚',
+  'Política': '🏛️',
+  'Protección Animal': '🐾',
+  'Idiomas y Bilingüismo': '🌍'
+};
+
+const POPULATION_COMMUNITIES = [
+  { id: 'discapacidad', label: 'Discapacidad o Movilidad Reducida', emoji: '♿' },
+  { id: 'victimas', label: 'Víctima del Conflicto Armado', emoji: '🕊️' },
+  { id: 'indigena', label: 'Comunidad Indígena (Cabildo)', emoji: '🪶' },
+  { id: 'afro', label: 'Comunidad Afro / Consejo Comunitario', emoji: '✊🏾' },
+  { id: 'madre', label: 'Madre Cabeza de Hogar / Gestante', emoji: '🤱' },
+  { id: 'campesina', label: 'Población Campesina / Rural', emoji: '🌾' },
+];
 
 const getTalentIcon = (talent: string) => {
   switch (talent) {
@@ -267,7 +303,7 @@ const QUESTION_STEPS = [
   { id: 'is_working', title: '¿Estás laborando actualmente?', fields: ['is_working'], icon: Briefcase },
   { id: 'profession', title: 'Profesión u ocupación', fields: ['profession'], icon: Briefcase },
   { id: 'is_entrepreneur', title: 'Micronegocio o emprendimiento', fields: ['is_entrepreneur', 'entrepreneur_name'], icon: Sparkles },
-  { id: 'is_in_organization', title: '¿Haces parte de alguna organización o colectivo?', fields: ['is_in_organization', 'organization_name'], icon: User },
+  { id: 'is_in_organization', title: '¿Haces parte de alguna de estas poblaciones o comunidades?', fields: ['is_in_organization', 'organization_name'], icon: Users },
   { id: 'interests', title: 'Temas de interés', fields: ['interests'], icon: Heart },
   { id: 'talents', title: 'Tus talentos ⭐', fields: ['talents', 'other_talent'] },
   { id: 'comments', title: 'Observaciones', fields: ['open_comments'], icon: MessageSquare },
@@ -679,10 +715,10 @@ export default function CharacterizationForm() {
             initial={{ opacity: 0, x: 20, scale: 0.98 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 1.02 }}
-            className="w-full max-w-lg space-y-10"
+            className={`w-full max-w-lg ${currentStep.id === 'is_in_organization' ? 'space-y-4' : 'space-y-10'}`}
           >
-            <div className="flex flex-col items-center text-center space-y-6">
-              {currentStep.icon && (
+            <div className={`flex flex-col items-center text-center ${currentStep.id === 'is_in_organization' ? 'space-y-2' : 'space-y-6'}`}>
+              {currentStep.icon && currentStep.id !== 'is_in_organization' && (
                 <motion.div 
                   whileHover={{ scale: 1.05, rotate: 2 }}
                   className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-[2.5rem] flex items-center justify-center text-primary shadow-xl relative group"
@@ -691,47 +727,33 @@ export default function CharacterizationForm() {
                    <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full -z-10" />
                 </motion.div>
               )}
-              <div className="flex flex-col items-center justify-center gap-2">
-                <h2 className="text-3xl md:text-5xl font-black tracking-tighter leading-none italic uppercase flex flex-col md:flex-row items-center justify-center gap-3">
-                  <span className="flex items-center justify-center gap-2 md:gap-3 flex-wrap">
-                    {currentStep.id === 'study_area' 
-                      ? (['Primaria', 'Bachillerato'].includes(watch('education_level')) 
-                          ? '¿En qué área le gustaría trabajar o capacitarse?' 
-                          : 'Área de estudio o experiencia') 
-                      : currentStep.title}
-                    {currentStep.id === 'is_in_organization' && (
-                      <button 
-                        onClick={() => setShowOrgInfo(!showOrgInfo)}
-                        type="button" 
-                        className="text-primary hover:scale-110 transition-transform opacity-80 hover:opacity-100 bg-primary/10 rounded-full p-1"
-                      >
-                        <Info className="w-5 h-5 md:w-8 md:h-8" />
-                      </button>
-                    )}
+              {currentStep.id === 'is_in_organization' ? (
+                <div className="flex flex-col items-center justify-center gap-2 pt-1">
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-snug max-w-md mx-auto text-center">
+                    ¿Haces parte de alguna de estas poblaciones o comunidades?
+                  </h2>
+                  <span className="text-[11px] font-medium tracking-wide bg-primary/10 border border-primary/20 text-primary px-2.5 py-0.5 rounded-full inline-flex">
+                    Opcional
                   </span>
-                  {['talents', 'comments'].includes(currentStep.id) && (
-                    <span className="text-[12px] md:text-[14px] bg-primary/10 border border-primary/20 text-primary px-3 py-1 rounded-full inline-flex w-fit not-italic font-bold tracking-widest uppercase mt-2 md:mt-0">
-                      Opcional
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <h2 className="text-3xl md:text-5xl font-black tracking-tighter leading-none italic uppercase flex flex-col md:flex-row items-center justify-center gap-3">
+                    <span className="flex items-center justify-center gap-2 md:gap-3 flex-wrap">
+                      {currentStep.id === 'study_area' 
+                        ? (['Primaria', 'Bachillerato'].includes(watch('education_level')) 
+                            ? '¿En qué área le gustaría trabajar o capacitarse?' 
+                            : 'Área de estudio o experiencia') 
+                        : currentStep.title}
                     </span>
-                  )}
-                </h2>
-                
-                {currentStep.id === 'is_in_organization' && (
-                  <AnimatePresence>
-                    {showOrgInfo && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, height: 0 }}
-                        animate={{ opacity: 1, y: 0, height: 'auto' }}
-                        exit={{ opacity: 0, y: -10, height: 0 }}
-                        className="text-sm md:text-base font-bold text-muted-foreground not-italic tracking-tight mt-2 text-center max-w-sm px-4"
-                      >
-                        <span className="uppercase text-[10px] tracking-widest font-black text-primary mr-1 bg-primary/10 px-2 py-0.5 rounded-md">EJ:</span>
-                        Indígena, afro, campesina, víctimas, mujeres, discapacidad u otra.
-                      </motion.div>
+                    {['talents', 'comments'].includes(currentStep.id) && (
+                      <span className="text-[12px] md:text-[14px] bg-primary/10 border border-primary/20 text-primary px-3 py-1 rounded-full inline-flex w-fit not-italic font-bold tracking-widest uppercase mt-2 md:mt-0">
+                        Opcional
+                      </span>
                     )}
-                  </AnimatePresence>
-                )}
-              </div>
+                  </h2>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -1343,22 +1365,92 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
       );
     case 'is_in_organization':
       const inOrg = watch('is_in_organization');
+      const orgName = watch('organization_name') || '';
       return (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <SelectableCard label="SÍ, PERTENEZCO" active={inOrg === true} onClick={() => setValue('is_in_organization', true)} />
-            <SelectableCard label="NO PERTENEZCO" active={inOrg === false} onClick={() => setValue('is_in_organization', false)} />
+        <div className="space-y-4 w-full max-w-xl mx-auto px-1">
+          <div className="grid grid-cols-2 gap-3">
+            {POPULATION_COMMUNITIES.map(pop => {
+              const isSelected = inOrg === true && orgName.startsWith(pop.label);
+              return (
+                <button
+                  key={pop.id}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setValue('is_in_organization', false, { shouldValidate: true });
+                      setValue('organization_name', '', { shouldValidate: true });
+                    } else {
+                      setValue('is_in_organization', true, { shouldValidate: true });
+                      setValue('organization_name', pop.label, { shouldValidate: true });
+                    }
+                  }}
+                  className={`
+                    p-3 rounded-2xl text-xs font-semibold normal-case transition-all duration-300 border flex flex-col items-center justify-center text-center gap-1.5 min-h-[74px]
+                    ${isSelected 
+                      ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 scale-[1.01]' 
+                      : 'bg-foreground/5 text-foreground/80 border-border/40 hover:bg-foreground/10 hover:border-foreground/20'}
+                  `}
+                >
+                  <span className="text-2xl select-none leading-none">{pop.emoji}</span>
+                  <span className="leading-tight px-1 font-medium">{pop.label}</span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => {
+                setValue('is_in_organization', false, { shouldValidate: true });
+                setValue('organization_name', '', { shouldValidate: true });
+              }}
+              className={`
+                col-span-2 p-3 rounded-2xl text-xs font-semibold normal-case transition-all duration-300 border flex items-center justify-center text-center gap-2 min-h-[48px]
+                ${inOrg === false 
+                  ? 'bg-primary text-primary-foreground border-primary shadow-md scale-[1.01]' 
+                  : 'bg-foreground/5 text-foreground/75 border-border/40 hover:bg-foreground/10'}
+              `}
+            >
+              <span className="text-xl select-none leading-none">🚫</span>
+              <span className="font-medium">Ninguna de las anteriores</span>
+            </button>
           </div>
+
           <AnimatePresence>
             {inOrg && (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-3"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pt-2 space-y-2"
               >
-                <Controller name="organization_name" control={control} render={({ field }) => (
-                  <Input {...field} placeholder="¿A qué organización?" className={inputClass} />
-                )} />
+                <Label className="text-xs font-medium text-muted-foreground px-2 block">
+                  ¿Perteneces a algún colectivo, cabildo o asociación específica? (Opcional)
+                </Label>
+                <Controller 
+                  name="organization_name" 
+                  control={control} 
+                  render={({ field }) => {
+                    const currentBase = POPULATION_COMMUNITIES.find(p => (field.value || '').startsWith(p.label))?.label || '';
+                    const detail = currentBase && field.value?.startsWith(`${currentBase} - `) 
+                      ? field.value.replace(`${currentBase} - `, '') 
+                      : '';
+                    return (
+                      <Input 
+                        placeholder="Ej: Cabildo Yanacona, Mesa de Víctimas..." 
+                        value={detail}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val.trim()) {
+                            field.onChange(`${currentBase} - ${val}`);
+                          } else {
+                            field.onChange(currentBase);
+                          }
+                        }}
+                        className={inputClass} 
+                      />
+                    );
+                  }} 
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -1376,7 +1468,7 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
         >
            <div className="text-center mb-6 space-y-2">
              <p className="text-[15px] sm:text-base font-bold text-foreground/90 leading-snug px-2">
-               ¿Con qué talentos o habilidades podrías apoyar al Partido MIRA?
+               ¿Con qué talentos o habilidades podrías apoyarnos?
              </p>
            </div>
            
@@ -1476,10 +1568,12 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
     case 'study_area':
       const hasOtherStudyArea = watch('study_area')?.includes('Otra');
       return (
-        <div className="space-y-6 overflow-y-auto no-scrollbar pb-32 px-1 relative -mt-6">
-          <div className="flex flex-wrap justify-center gap-2.5">
+        <div className="space-y-4 w-full max-w-xl mx-auto px-1">
+          <div className="grid grid-cols-2 gap-3">
             {STUDY_AREAS.map(a => {
               const isSelected = watch('study_area')?.includes(a);
+              const emoji = STUDY_AREA_EMOJIS[a] || '🎓';
+              const isOther = a === 'Otra';
               return (
                 <button
                   key={a}
@@ -1491,18 +1585,20 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                         ? current.filter((i: string) => i !== a)
                         : [...current, a]
                     );
-                    if (isSelected && a === 'Otra') {
+                    if (isSelected && isOther) {
                       setValue('other_study_area', '');
                     }
                   }}
                   className={`
-                    px-5 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 border
+                    p-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 border flex flex-col items-center justify-center text-center gap-1.5 min-h-[78px]
+                    ${isOther ? 'col-span-2' : ''}
                     ${isSelected 
-                      ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 scale-[1.02]' 
-                      : 'bg-foreground/5 text-foreground/70 border-transparent hover:bg-foreground/10 hover:border-foreground/10'}
+                      ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 scale-[1.01]' 
+                      : 'bg-foreground/5 text-foreground/75 border-border/40 hover:bg-foreground/10 hover:border-foreground/20'}
                   `}
                 >
-                  {a}
+                  <span className="text-2xl select-none leading-none">{emoji}</span>
+                  <span className="leading-tight px-1 font-bold">{a}</span>
                 </button>
               );
             })}
@@ -1534,6 +1630,7 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
         <div className="grid grid-cols-2 gap-3 px-1">
           {INTERESTS.map(interest => {
             const isSelected = watch('interests')?.includes(interest);
+            const emoji = INTEREST_EMOJIS[interest] || '✨';
             return (
               <button
                 key={interest}
@@ -1543,9 +1640,15 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                   if (isSelected) setValue('interests', current.filter((i: string) => i !== interest));
                   else setValue('interests', [...current, interest]);
                 }}
-                className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest h-20 flex items-center justify-center text-center transition-all ${isSelected ? 'bg-primary text-white scale-95 shadow-xl' : 'bg-foreground/15 dark:bg-foreground/5 border border-foreground/30 dark:border-foreground/10 opacity-100'}`}
+                className={`
+                  p-3 rounded-2xl text-xs font-semibold normal-case transition-all duration-300 border flex flex-col items-center justify-center text-center gap-1.5 min-h-[74px]
+                  ${isSelected 
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25 scale-[1.01]' 
+                    : 'bg-foreground/5 text-foreground/80 border-border/40 hover:bg-foreground/10 hover:border-foreground/20'}
+                `}
               >
-                {interest}
+                <span className="text-2xl select-none leading-none">{emoji}</span>
+                <span className="leading-tight px-1 font-medium">{interest}</span>
               </button>
             );
           })}
@@ -1569,53 +1672,61 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
         <div className="flex flex-col space-y-6 w-full max-w-2xl mx-auto px-2">
           <div className="text-center space-y-2">
             <h2 className="text-[14px] font-black tracking-tight text-primary leading-tight uppercase">Autorización para la Recolección y Tratamiento de Datos Personales</h2>
+            <p className="text-[11px] font-bold text-foreground/60 uppercase tracking-wider">Ley Estatutaria 1581 de 2012 • Decreto 1377 de 2013</p>
           </div>
 
           <div className="w-full h-80 md:h-96 overflow-y-auto custom-scrollbar bg-zinc-50 dark:bg-zinc-900/50 border border-border p-5 rounded-2xl text-[11px] leading-relaxed text-foreground/80 dark:text-foreground/70 space-y-4 shadow-inner text-left">
             <p className="font-bold text-foreground/90">
-              Mediante mi consentimiento consciente, libre y voluntario, autorizo para tratar los datos que proporciono en formularios físicos y electrónicos, incorporándolos en sus bases de datos.
+              Mediante mi consentimiento previo, consciente, libre e informado, autorizo a la iniciativa comunitaria <strong>¡Mira Ve! Cali Es De Todos</strong> para recolectar y tratar los datos personales (y los de mi acudiente, si aplica) que proporciono a través de este formulario, incorporándolos en sus bases de datos con fines formativos, sociales y comunitarios.
             </p>
             <div>
-              <p className="font-bold text-foreground/90 mb-1">Finalidades del Tratamiento de Datos</p>
-              <p>He sido informado que mis datos serán utilizados para:</p>
+              <p className="font-bold text-foreground/90 mb-1">1. Responsable del Tratamiento y Ámbito Territorial</p>
+              <p>
+                La iniciativa ciudadana y comunitaria <strong>¡Mira Ve! Cali Es De Todos</strong>, conformada por jóvenes y líderes comunitarios de Santiago de Cali y su área de influencia en el Valle del Cauca, actúa como Responsable del tratamiento de los datos personales recolectados a través de esta plataforma de caracterización para jóvenes de <strong>Santiago de Cali, Yumbo, Jamundí y municipios aledaños</strong>.
+              </p>
+            </div>
+            <div>
+              <p className="font-bold text-foreground/90 mb-1">2. Naturaleza y Finalidad de la Información</p>
+              <p>He sido informado(a) que mis datos serán utilizados exclusivamente para:</p>
               <ul className="list-disc pl-4 space-y-1 mt-1">
-                <li>Cumplir con los deberes legales del Partido.</li>
-                <li>Contactarme y enviarme información sobre actividades y proyectos del Partido.</li>
-                <li>Invitarme a eventos y reuniones políticas y electorales.</li>
-                <li>Difundir propaganda electoral y comunicados internos.</li>
-                <li>Realizar sondeos, encuestas y estudios de opinión.</li>
-                <li>Informarme sobre la plataforma ideológica y la gestión de representantes del Partido.</li>
-                <li>Desarrollar estrategias políticas y electorales basadas en mis preferencias ideológicas y religiosas.</li>
-                <li>Compartir mis datos con aspirantes y candidatos del Partido.</li>
-                <li>Acompañarme en el proceso de definición de situación militar.</li>
-                <li>Cualquier fin compatible con la gestión y defensa de mis derechos.</li>
+                <li>Caracterización comunitaria y diagnóstico de necesidades, talentos, oportunidades e intereses de las juventudes en las comunas, barrios y corregimientos de <strong>Cali, Yumbo y Jamundí</strong>.</li>
+                <li>Convocatoria y participación voluntaria en talleres pedagógicos, escuelas de liderazgo juvenil, foros, eventos artísticos, deportivos, culturales y de voluntariado social comunitario sin ánimo de lucro.</li>
+                <li>Contacto informativo a través de WhatsApp, correo electrónico o llamadas telefónicas sobre iniciativas y actividades de bienestar juvenil y comunitario en la región.</li>
+                <li>Expedición y validación de certificados de participación en actividades de formación juvenil.</li>
               </ul>
             </div>
             <div>
-              <p className="font-bold text-foreground/90 mb-1">Datos Sensibles y de Menores de Edad</p>
-              <p>Reconozco que no estoy obligado a proporcionar datos sensibles, tales como origen étnico, creencias religiosas, orientación política, entre otros. En caso de proporcionar datos de menores, esta autorización incluye el consentimiento de sus representantes legales.</p>
+              <p className="font-bold text-foreground/90 mb-1">3. Tratamiento de Datos de Menores de Edad</p>
+              <p>
+                En cumplimiento del Artículo 7° de la Ley 1581 de 2012 y el Artículo 12 del Decreto 1377 de 2013, el tratamiento de datos personales de menores de 18 años respeta de manera prevalente sus derechos fundamentales y el interés superior del menor. Los datos de contacto del acudiente responsable son solicitados con el propósito exclusivo de acompañamiento, conocimiento, bienestar y seguridad del menor de edad en las actividades comunitarias.
+              </p>
             </div>
             <div>
-              <p className="font-bold text-foreground/90 mb-1">Tratamiento</p>
-              <p>Autorizo al Partido a transferir mis datos a terceros y realizar diversas operaciones sobre ellos, incluyendo recolección, almacenamiento, uso, circulación, supresión, procesamiento y eliminación. También autorizo la transferencia internacional de mis datos.</p>
-              <p className="mt-2">El Partido y los terceros autorizados pueden consultar mi información en bases de datos nacionales e internacionales sobre antecedentes penales, disciplinarios y otros.</p>
+              <p className="font-bold text-foreground/90 mb-1">4. Carácter Facultativo y Cero Comercialización</p>
+              <p>
+                Las respuestas a preguntas de carácter sensible (como pertenencia étnica, condición de discapacidad o identidad) son estrictamente voluntarias y tienen fines de inclusión comunitaria. Los datos personales aquí registrados <strong>en ningún caso serán vendidos, transferidos, cedidos ni comercializados con terceros</strong>.
+              </p>
             </div>
             <div>
-              <p className="font-bold text-foreground/90 mb-1">Derechos del Titular</p>
-              <p>He sido informado de mis derechos, entre ellos:</p>
+              <p className="font-bold text-foreground/90 mb-1">5. Derechos del Titular (Habeas Data)</p>
+              <p>Como titular de la información (o acudiente legal), se me ha informado que tengo derecho a:</p>
               <ul className="list-disc pl-4 space-y-1 mt-1">
-                <li>Conocer, actualizar y rectificar mis datos.</li>
+                <li>Conocer, actualizar y rectificar mis datos personales.</li>
                 <li>Solicitar prueba de la autorización otorgada.</li>
-                <li>Ser informado sobre el uso de mis datos.</li>
-                <li>Presentar quejas ante la Superintendencia de Industria y Comercio.</li>
-                <li>Revocar la autorización y solicitar la supresión de mis datos.</li>
-                <li>Acceder gratuitamente a mis datos tratados.</li>
+                <li>Ser informado(a) sobre el uso que se le da a mis datos.</li>
+                <li>Presentar quejas ante la Superintendencia de Industria y Comercio por presuntas infracciones a la ley.</li>
+                <li>Revocar la autorización y solicitar la supresión de mis datos cuando no exista un deber legal que lo impida.</li>
+                <li>Acceder de forma gratuita a mis datos tratados.</li>
               </ul>
-              <p className="mt-2">Para ejercer mis derechos, puedo contactar al Partido a través del correo <a href="mailto:protecciondedatos@movimientomira.com.co" className="text-primary underline">protecciondedatos@movimientomira.com.co</a>, la dirección transversal 29 # 36 – 40 en Bogotá D.C., o al teléfono (057) 4432230.</p>
+              <p className="mt-2">
+                Para ejercer estos derechos o radicar cualquier consulta o solicitud de Habeas Data, puedo contactar al equipo a través del correo electrónico: <a href="mailto:contacto@miravecaliesdetodos.site" className="text-primary font-bold underline">contacto@miravecaliesdetodos.site</a> indicando nombre completo y número de documento.
+              </p>
             </div>
             <div>
-              <p className="font-bold text-foreground/90 mb-1">Otras Disposiciones</p>
-              <p>Declaro que se me ha informado sobre su política de tratamiento de datos. Afirmo que los datos que proporciono son veraces y comprensibles, y que el manejo de los mismos respetará las leyes colombianas, especialmente la Ley 1581 de 2012 y el Decreto 1074 de 2015. Confirmo que he leído y comprendido esta autorización antes de proporcionar mis datos personales y que al dar clic en "ACEPTO", otorgo mi consentimiento libre y voluntario.</p>
+              <p className="font-bold text-foreground/90 mb-1">6. Declaración de Conformidad</p>
+              <p>
+                Declaro que la información suministrada es veraz y voluntaria. Confirmo que he leído y comprendido a cabalidad los términos de esta autorización antes de proporcionar mis datos, y que al hacer clic en el botón de aceptación otorgo mi consentimiento previo, expreso e informado de acuerdo con la Ley Estatutaria 1581 de 2012 y el Decreto 1377 de 2013 de la República de Colombia.
+              </p>
             </div>
           </div>
 
