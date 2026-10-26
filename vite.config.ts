@@ -48,70 +48,109 @@ export default defineConfig(({mode}) => {
                   const locationInfo = payload.commune
                     ? `Comuna ${payload.commune}${payload.neighborhood ? ` - B/ ${payload.neighborhood}` : ''}`
                     : 'Santiago de Cali';
+                  const cleanName = fullName
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-zA-Z0-9]/g, '_')
+                    .substring(0, 30);
+
+                  const verificationUrl = `https://miravejuventudescali.site/verificar?radicado=${encodeURIComponent(code)}`;
 
                   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Certificado Oficial de Caracterización Juvenil</title>
+  <title>Certificado Oficial - Juventudes MIRA Cali</title>
 </head>
-<body style="margin:0;padding:0;background-color:#F1F5F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1E293B;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F1F5F9;padding:30px 10px;">
+<body style="margin:0;padding:0;background-color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F172A;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;padding:36px 12px;">
     <tr>
       <td align="center">
-        <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#FFFFFF;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(0,43,121,0.08);border:1px solid #E2E8F0;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:580px;background-color:#FFFFFF;border-radius:24px;overflow:hidden;box-shadow:0 12px 36px rgba(0,43,121,0.07);border:1px solid #E2E8F0;">
+          <!-- Banner Superior -->
           <tr>
-            <td style="background:linear-gradient(135deg,#002B79 0%,#001A4E 100%);padding:35px 25px;text-align:center;color:#FFFFFF;">
-              <span style="display:inline-block;background-color:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);padding:5px 14px;border-radius:9999px;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;color:#6EC1E4;">¡MIRA VÉ! JUVENTUDES CALI</span>
-              <h1 style="font-size:26px;font-weight:900;margin:0;letter-spacing:1px;text-transform:uppercase;color:#FFFFFF;">Certificado de Registro</h1>
-              <p style="font-size:13px;opacity:0.85;margin:6px 0 0 0;letter-spacing:1px;color:#E2E8F0;">Constancia Oficial de Caracterización Juvenil</p>
+            <td style="background:linear-gradient(135deg,#002B79 0%,#001845 100%);padding:36px 28px;text-align:center;color:#FFFFFF;">
+              <span style="display:inline-block;background-color:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);padding:6px 16px;border-radius:9999px;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;color:#6EC1E4;">
+                ¡MIRA VÉ! JUVENTUDES CALI
+              </span>
+              <h1 style="font-size:24px;font-weight:900;margin:0;letter-spacing:0.5px;color:#FFFFFF;line-height:1.2;">
+                Tu Certificado Oficial de Registro
+              </h1>
+              <p style="font-size:13px;opacity:0.85;margin:8px 0 0 0;letter-spacing:0.5px;color:#CBD5E1;">
+                Constancia de Caracterización Juvenil Santiago de Cali
+              </p>
             </td>
           </tr>
+
+          <!-- Cuerpo Principal -->
           <tr>
             <td style="padding:32px 28px;">
-              <p style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
-                ¡Hola <strong>${fullName}</strong>! 🎉<br>
-                Queremos darte la más cálida bienvenida. Tu registro ha sido procesado y validado satisfactoriamente en la base de datos de <strong>Juventudes MIRA Cali</strong>.
+              <p style="font-size:16px;line-height:1.6;color:#1E293B;margin:0 0 20px 0;">
+                ¡Hola <strong>${fullName}</strong>! 🎉
               </p>
-              
-              <div style="background:#FAFCFF;border:2px solid #002B79;border-radius:16px;padding:26px 20px;text-align:center;margin:25px 0;">
-                <span style="display:inline-block;background:#002B79;color:#FFFFFF;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:15px;">✓ Validación Oficial</span>
-                <div style="font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#64748B;font-weight:700;">Constancia expedida a favor de:</div>
-                <div style="font-size:22px;font-weight:900;color:#002B79;text-transform:uppercase;margin:10px 0;line-height:1.3;">${fullName}</div>
-                <div style="font-size:14px;font-weight:600;color:#475569;margin-bottom:15px;">Documento: <strong>${docInfo}</strong></div>
-                <p style="font-size:13px;color:#334155;line-height:1.6;margin:15px 0 20px 0;padding:0 10px;">
-                  Certifica que el/la joven ha participado formalmente en el censo y caracterización del movimiento <strong>Juventudes MIRA en Santiago de Cali</strong>, quedando formalmente vinculado/a para las iniciativas de liderazgo, formación, vocación social y talento juvenil.
-                </p>
-                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top:1px dashed #CBD5E1;padding-top:16px;margin-top:16px;">
-                  <tr>
-                    <td align="left" style="font-size:11px;">
-                      <span style="color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px;">Ubicación</span>
-                      <span style="color:#0F172A;font-weight:800;font-size:12px;">${locationInfo}</span>
-                    </td>
-                    <td align="right" style="font-size:11px;">
-                      <span style="color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px;">Fecha de Expedición</span>
-                      <span style="color:#0F172A;font-weight:800;font-size:12px;">${emissionDate}</span>
-                    </td>
-                  </tr>
-                </table>
-                <div style="margin-top:18px;padding:10px;background:#EEF4FF;border-radius:8px;font-family:monospace;font-size:12px;font-weight:800;color:#002B79;letter-spacing:1.5px;">
-                  RADICADO: ${code}
-                </div>
-              </div>
+              <p style="font-size:14px;line-height:1.65;color:#475569;margin:0 0 24px 0;">
+                Te damos una cordial bienvenida. Tu registro en la <strong>Caracterización Juvenil</strong> ha sido validado exitosamente. Adjunto a este mensaje encuentras tu <strong>Certificado Oficial en formato de alta resolución (PNG)</strong> listo para guardar, compartir o imprimir.
+              </p>
 
-              <p style="font-size:13px;color:#475569;text-align:center;line-height:1.6;margin-top:24px;">
-                Guarda este correo como comprobante digital de tu participación.<br>
-                ¡Gracias por ser parte activa de la transformación de nuestra ciudad!
-              </p>
+              <!-- Tarjeta de Datos y Radicado -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F1F5F9;border-radius:16px;padding:20px;margin-bottom:26px;border:1px solid #E2E8F0;">
+                <tr>
+                  <td>
+                    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:4px;">Participante</div>
+                    <div style="font-size:15px;font-weight:800;color:#002B79;margin-bottom:12px;">${fullName}</div>
+
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="50%" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding-bottom:3px;">Documento</td>
+                        <td width="50%" style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding-bottom:3px;text-align:right;">Ubicación</td>
+                      </tr>
+                      <tr>
+                        <td width="50%" style="font-size:13px;color:#0F172A;font-weight:700;padding-bottom:14px;">${docInfo}</td>
+                        <td width="50%" style="font-size:13px;color:#0F172A;font-weight:700;padding-bottom:14px;text-align:right;">${locationInfo}</td>
+                      </tr>
+                    </table>
+
+                    <div style="background:#FFFFFF;border-radius:10px;padding:12px 14px;border:1px solid #CBD5E1;text-align:center;">
+                      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Código Único de Radicado</div>
+                      <div style="font-family:monospace;font-size:14px;font-weight:900;color:#002B79;letter-spacing:1.5px;">${code}</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Botón de Verificación Oficial -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${verificationUrl}" target="_blank" style="display:inline-block;background-color:#002B79;color:#FFFFFF;text-decoration:none;padding:13px 26px;border-radius:12px;font-size:13px;font-weight:800;letter-spacing:0.5px;box-shadow:0 4px 14px rgba(0,43,121,0.25);">
+                      ✓ Verificar Autenticidad en Línea
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Aviso de Archivo Adjunto -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#EFF6FF;border-radius:12px;padding:12px 16px;border:1px dashed #93C5FD;">
+                <tr>
+                  <td width="30" valign="top" style="font-size:18px;">📎</td>
+                  <td style="font-size:12px;color:#1E40AF;line-height:1.5;font-weight:600;">
+                    <strong>Certificado Oficial adjunto:</strong> Descarga el archivo de imagen adjunto a este correo (<strong>Certificado-Juventudes-MIRA-${cleanName}.png</strong>) para tener tu copia oficial.
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- Pie de página -->
           <tr>
-            <td style="background-color:#F8FAFC;border-top:1px solid #E2E8F0;padding:24px 20px;text-align:center;font-size:12px;color:#64748B;line-height:1.6;">
-              <div style="font-weight:800;color:#002B79;text-transform:uppercase;letter-spacing:1px;font-size:13px;margin-bottom:6px;">Movimiento Político MIRA • Juventudes Cali</div>
+            <td style="background-color:#F8FAFC;border-top:1px solid #E2E8F0;padding:22px 28px;text-align:center;font-size:11px;color:#64748B;line-height:1.6;">
+              <div style="font-weight:800;color:#002B79;text-transform:uppercase;letter-spacing:1px;font-size:12px;margin-bottom:4px;">
+                Movimiento Político MIRA • Juventudes Cali
+              </div>
               <div>Santiago de Cali, Valle del Cauca, Colombia</div>
-              <div style="margin-top:10px;font-size:11px;color:#94A3B8;">
-                Este es un correo automático generado tras completar el formulario en miravejuventudescali.site • Ley 1581 de Protección de Datos Personales
+              <div style="margin-top:8px;font-size:10px;color:#94A3B8;">
+                Generado automáticamente tras completar el formulario en miravejuventudescali.site • Conforme a la Ley 1581 de Protección de Datos
               </div>
             </td>
           </tr>
@@ -122,20 +161,35 @@ export default defineConfig(({mode}) => {
 </body>
 </html>`;
 
+                  const attachments = payload.certificateImageBase64
+                    ? [
+                        {
+                          filename: `Certificado-Juventudes-MIRA-${cleanName}.png`,
+                          content: payload.certificateImageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
+                        },
+                      ]
+                    : [];
+
+                  const resendPayload: any = {
+                    from: 'Juventudes MIRA Cali <certificados@miravejuventudescali.site>',
+                    reply_to: 'certificados@miravejuventudescali.site',
+                    to: [payload.email],
+                    subject: `🎓 Tu Certificado Oficial de Registro - ${fullName}`,
+                    html: html,
+                    text: `Certificado Oficial de Registro - Juventudes MIRA Cali\n\nEstimado(a) ${fullName},\nTu registro ha sido completado y validado satisfactoriamente.\nTu certificado oficial viene adjunto como imagen PNG.\nCódigo de Radicado: ${code}\nVerificar en línea: ${verificationUrl}`,
+                  };
+
+                  if (attachments.length > 0) {
+                    resendPayload.attachments = attachments;
+                  }
+
                   const resendResponse = await fetch('https://api.resend.com/emails', {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${apiKey}`,
                       'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                      from: 'Juventudes MIRA Cali <certificados@miravejuventudescali.site>',
-                      reply_to: 'certificados@miravejuventudescali.site',
-                      to: [payload.email],
-                      subject: `Certificado Oficial de Caracterización Juvenil - ${fullName}`,
-                      html: html,
-                      text: `Certificado Oficial de Caracterización Juvenil - Juventudes MIRA Cali\n\nEstimado(a) ${fullName},\nTu registro ha sido completado y validado satisfactoriamente.\nCódigo de Radicado: ${code}\nSantiago de Cali, Valle del Cauca.`,
-                    }),
+                    body: JSON.stringify(resendPayload),
                   });
 
                   const resendData = await resendResponse.json();

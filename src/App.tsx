@@ -17,6 +17,7 @@ import PadresPage from '@/modules/admin/PadresPage';
 import CertificadosPage from '@/modules/admin/CertificadosPage';
 import SettingsPage from '@/modules/admin/SettingsPage';
 import AutorizacionPadrePage from '@/modules/autorizacion/AutorizacionPadrePage';
+import VerificarCertificadoPage from '@/modules/verification/VerificarCertificadoPage';
 import { supabase } from '@/lib/supabase';
 import { AlertCircle } from 'lucide-react';
 
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="/encuesta" element={<CharacterizationForm />} />
           <Route path="/autorizacion" element={<AutorizacionPadrePage />} />
           <Route path="/autorizacion/:token" element={<AutorizacionPadrePage />} />
+          <Route path="/verificar" element={<VerificarCertificadoPage />} />
+          <Route path="/verificar/:radicado" element={<VerificarCertificadoPage />} />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />

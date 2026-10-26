@@ -16,12 +16,15 @@ import {
   Sparkles,
   Info,
   Check,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { CertificateModal } from '@/components/CertificateModal';
+import { generateCertificateBase64 } from '@/utils/generateCertificateImage';
 
 interface PendingRecord {
   id: string;
@@ -60,6 +63,17 @@ export default function CertificadosPage() {
   const [isDispatching, setIsDispatching] = useState(false);
   const [dispatchProgress, setDispatchProgress] = useState({ current: 0, total: 0, currentName: '', success: 0, failed: 0 });
   const [shouldStopDispatch, setShouldStopDispatch] = useState(false);
+
+  // Vista previa de certificado con la plantilla oficial
+  const [previewData, setPreviewData] = useState<{
+    fullName: string;
+    documentType: string;
+    documentNumber: string;
+    commune?: string;
+    neighborhood?: string;
+    code?: string;
+    date?: string;
+  } | null>(null);
 
   // Cupos disponibles hoy
   const remainingToday = Math.max(0, dailyLimit - todaySent);
@@ -156,6 +170,21 @@ export default function CertificadosPage() {
   const sendCertificateForRecord = async (record: PendingRecord): Promise<boolean> => {
     try {
       const fullName = `${record.first_name || ''} ${record.last_name || ''}`.trim();
+
+      let certificateImageBase64: string | undefined = undefined;
+      try {
+        certificateImageBase64 = await generateCertificateBase64({
+          fullName,
+          documentType: record.document_type,
+          documentNumber: record.document_number,
+          code: record.certificate_code || undefined,
+          commune: record.commune,
+          neighborhood: record.neighborhood,
+        });
+      } catch (genErr) {
+        console.warn('Nota: no se pudo pre-generar canvas en panel:', genErr);
+      }
+
       const res = await fetch('/api/send-certificate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,6 +196,7 @@ export default function CertificadosPage() {
           commune: record.commune,
           neighborhood: record.neighborhood,
           code: record.certificate_code,
+          certificateImageBase64,
         }),
       });
 
@@ -302,16 +332,36 @@ export default function CertificadosPage() {
           </div>
         </div>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={refreshing || isDispatching}
-          className="rounded-xl border-foreground/10 gap-2 self-start sm:self-auto"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Actualizar métricas
-        </Button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPreviewData({
+              fullName: 'VALENTINA RODRÍGUEZ CAICEDO',
+              documentType: 'CC',
+              documentNumber: '1144098765',
+              commune: '17',
+              neighborhood: 'El Limonar',
+              code: 'MIRA-CL-2026-VAL-4821',
+              date: new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date()),
+            })}
+            className="rounded-xl border-primary/30 hover:border-primary text-primary gap-2 font-black text-xs h-9 bg-primary/5 hover:bg-primary/10 shadow-xs"
+          >
+            <Eye className="w-4 h-4" />
+            Probar Plantilla PNG
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing || isDispatching}
+            className="rounded-xl border-foreground/10 gap-2 h-9"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Actualizar métricas
+          </Button>
+        </div>
       </div>
 
       {/* Grid de Métricas Principales */}
@@ -532,25 +582,45 @@ export default function CertificadosPage() {
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant={rec.certificate_sent ? 'outline' : 'default'}
-                    onClick={() => handleSingleResend(rec)}
-                    disabled={resendingId === rec.id}
-                    className="shrink-0 rounded-xl text-xs gap-1.5 font-bold"
-                  >
-                    {resendingId === rec.id ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-3.5 h-3.5" />
-                        {rec.certificate_sent ? 'Reenviar' : 'Enviar Ahora'}
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPreviewData({
+                        fullName: `${rec.first_name || ''} ${rec.last_name || ''}`.trim(),
+                        documentType: rec.document_type,
+                        documentNumber: rec.document_number,
+                        commune: rec.commune,
+                        neighborhood: rec.neighborhood,
+                        code: rec.certificate_code,
+                      })}
+                      className="rounded-xl text-xs gap-1 font-bold h-9 px-2.5 text-muted-foreground hover:text-foreground"
+                      title="Ver plantilla"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-primary" />
+                      <span className="hidden sm:inline">Ver</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant={rec.certificate_sent ? 'outline' : 'default'}
+                      onClick={() => handleSingleResend(rec)}
+                      disabled={resendingId === rec.id}
+                      className="rounded-xl text-xs gap-1.5 font-bold h-9"
+                    >
+                      {resendingId === rec.id ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-3.5 h-3.5" />
+                          {rec.certificate_sent ? 'Reenviar' : 'Enviar Ahora'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -597,10 +667,27 @@ export default function CertificadosPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[10px] text-muted-foreground hidden sm:inline">
                     {new Date(rec.created_at).toLocaleDateString()}
                   </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPreviewData({
+                      fullName: `${rec.first_name || ''} ${rec.last_name || ''}`.trim(),
+                      documentType: rec.document_type,
+                      documentNumber: rec.document_number,
+                      commune: rec.commune,
+                      neighborhood: rec.neighborhood,
+                      code: rec.certificate_code,
+                    })}
+                    className="rounded-xl text-[11px] font-bold h-8 text-muted-foreground hover:text-foreground gap-1 px-2"
+                    title="Ver constancia"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-primary" />
+                    <span className="hidden sm:inline">Ver</span>
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -621,6 +708,15 @@ export default function CertificadosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Vista Previa con la Plantilla Oficial */}
+      {previewData && (
+        <CertificateModal
+          isOpen={Boolean(previewData)}
+          onClose={() => setPreviewData(null)}
+          data={previewData}
+        />
+      )}
     </div>
   );
 }

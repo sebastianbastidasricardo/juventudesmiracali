@@ -42,6 +42,7 @@ import { generateGuardianToken, buildGuardianAuthWhatsAppUrl } from '@/utils/wha
 import { CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, EDUCATION_LEVELS, GENDERS, INTERESTS, STUDY_AREAS, TALENTS_CATEGORIES } from '@/constants/cali';
 import { supabase } from '@/lib/supabase';
 import { CertificateModal } from '@/components/CertificateModal';
+import { generateCertificateBase64 } from '@/utils/generateCertificateImage';
 
 /**
  * Validador oficial de documentos de identidad de Colombia:
@@ -615,40 +616,59 @@ export default function CharacterizationForm() {
         return;
       }
 
-      // 3. Si hay cupo disponible y es su primera vez -> Enviar por Resend
+      // 3. Si hay cupo disponible y es su primera vez -> Enviar por Resend con la plantilla PNG adjunta
       if (data.email) {
         setEmailStatus('sending');
-        fetch('/api/send-certificate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userCertData),
-        })
-          .then(async (res) => {
-            const resData = await res.json().catch(() => ({}));
-            if (res.ok && resData.success !== false) {
-              setEmailStatus('sent');
-              const finalCode = resData.code || codeFromDb;
-              if (finalCode) setCertificateCode(finalCode);
+        (async () => {
+          let certificateImageBase64: string | undefined = undefined;
+          try {
+            certificateImageBase64 = await generateCertificateBase64({
+              fullName,
+              documentType: data.document_type,
+              documentNumber: data.document_number,
+              code: codeFromDb || undefined,
+              commune: data.commune,
+              neighborhood: data.neighborhood,
+            });
+          } catch (genErr) {
+            console.warn('Nota: no se pudo pre-generar canvas del certificado, se enviará correo estándar:', genErr);
+          }
 
-              // Marcar en Supabase que el certificado fue enviado con éxito
-              try {
-                await supabase.rpc('mark_certificate_sent', {
-                  doc_type: data.document_type,
-                  doc_number: data.document_number,
-                  cert_code: finalCode,
-                });
-              } catch (err) {
-                console.warn('Aviso al actualizar estado en Supabase:', err);
-              }
-            } else {
-              console.warn('Advertencia en envío de certificado:', resData);
-              setEmailStatus('error');
-            }
+          fetch('/api/send-certificate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...userCertData,
+              certificateImageBase64,
+            }),
           })
-          .catch((err) => {
-            console.error('Error al enviar certificado por correo:', err);
-            setEmailStatus('error');
-          });
+            .then(async (res) => {
+              const resData = await res.json().catch(() => ({}));
+              if (res.ok && resData.success !== false) {
+                setEmailStatus('sent');
+                const finalCode = resData.code || codeFromDb;
+                if (finalCode) setCertificateCode(finalCode);
+
+                // Marcar en Supabase que el certificado fue enviado con éxito
+                try {
+                  await supabase.rpc('mark_certificate_sent', {
+                    doc_type: data.document_type,
+                    doc_number: data.document_number,
+                    cert_code: finalCode,
+                  });
+                } catch (err) {
+                  console.warn('Aviso al actualizar estado en Supabase:', err);
+                }
+              } else {
+                console.warn('Advertencia en envío de certificado:', resData);
+                setEmailStatus('error');
+              }
+            })
+            .catch((err) => {
+              console.error('Error al enviar certificado por correo:', err);
+              setEmailStatus('error');
+            });
+        })();
       }
     } catch (err: any) {
       console.error('Captura de error en onSubmit:', err);
