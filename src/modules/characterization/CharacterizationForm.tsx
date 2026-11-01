@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { calculateAge } from '@/utils/validators';
 import { generateGuardianToken, buildGuardianAuthWhatsAppUrl } from '@/utils/whatsapp';
-import { CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, EDUCATION_LEVELS, GENDERS, INTERESTS, STUDY_AREAS, TALENTS_CATEGORIES } from '@/constants/cali';
+import { CITIES, CityName, COMMUNES_BY_CITY, getNeighborhoodsFor, CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, EDUCATION_LEVELS, GENDERS, INTERESTS, STUDY_AREAS, TALENTS_CATEGORIES } from '@/constants/cali';
 import { supabase } from '@/lib/supabase';
 import { CertificateModal } from '@/components/CertificateModal';
 import { generateCertificateBase64 } from '@/utils/generateCertificateImage';
@@ -117,8 +117,9 @@ const formSchema = z.object({
   other_registration_source: z.string().optional(),
   church_headquarters: z.string().optional(),
   other_church_headquarters: z.string().optional(),
+  city: z.string().default('Cali'),
   neighborhood: z.string().min(2, 'Barrio requerido'),
-  commune: z.string().min(1, 'Comuna requerida'),
+  commune: z.string().min(1, 'Comuna o sector requerido'),
   education_level: z.string().min(1, 'Nivel requerido'),
   study_area: z.array(z.string()).min(1, 'Selecciona al menos un área'),
   other_study_area: z.string().optional(),
@@ -242,6 +243,12 @@ const STUDY_AREA_EMOJIS: Record<string, string> = {
   'Educación': '📚',
   'Comunicación / Marketing': '📢',
   'Logística y Operación': '📦',
+  'Idiomas y Lenguas Extranjeras': '🌐',
+  'Gastronomía y Cocina': '🍳',
+  'Veterinaria y Cuidado Animal': '🐾',
+  'Belleza y Cuidado Personal': '💈',
+  'Deporte y Actividad Física': '🏋️',
+  'Turismo y Hotelería': '🏨',
   'Otra': '✨'
 };
 
@@ -298,7 +305,7 @@ const QUESTION_STEPS = [
   { id: 'military', title: '¿Cuál es tu situación militar?', fields: ['military_status'], icon: Shield },
   { id: 'guardian', title: 'Contacto de tu acudiente', fields: ['guardian_relationship', 'guardian_name', 'guardian_phone'], icon: HeartHandshake },
   { id: 'contact', title: '¿Cómo nos comunicamos contigo?', fields: ['phone', 'email'], icon: Phone },
-  { id: 'location', title: '¿Dónde vives?', fields: ['commune', 'neighborhood'], icon: MapPin },
+  { id: 'location', title: '¿Dónde vives?', fields: ['city', 'commune', 'neighborhood'], icon: MapPin },
   { id: 'education', title: 'Tu formación actual', fields: ['education_level'], icon: GraduationCap },
   { id: 'study_area', title: 'Área de estudio', fields: ['study_area'], icon: GraduationCap },
   { id: 'is_working', title: '¿Estás laborando actualmente?', fields: ['is_working'], icon: Briefcase },
@@ -346,6 +353,7 @@ export default function CharacterizationForm() {
         document_type: 'CC',
         military_status: '',
         data_authorization: false,
+        city: 'Cali',
         commune: CALI_COMMUNES[0],
         registration_source: '',
         other_registration_source: '',
@@ -557,17 +565,21 @@ export default function CharacterizationForm() {
         throw new Error(supabaseError.message || 'Error desconocido al guardar');
       }
 
-      // Si es menor de edad, aseguramos guardar el token y estado en characterization_records
-      if (isMinor && guardianToken && supabase) {
+      // Guardar la ciudad seleccionada (Cali, Jamundí o Yumbo) y datos de acudiente si aplica
+      if (supabase) {
         try {
+          const updateFields: Record<string, any> = {
+            city: data.city || 'Cali'
+          };
+          if (isMinor && guardianToken) {
+            updateFields.guardian_token = guardianToken;
+            updateFields.guardian_contact_status = 'pending';
+          }
           await supabase.from('characterization_records')
-            .update({ 
-              guardian_token: guardianToken,
-              guardian_contact_status: 'pending'
-            })
+            .update(updateFields)
             .eq('document_number', data.document_number);
-        } catch (errToken) {
-          console.warn('Nota guardando guardian_token:', errToken);
+        } catch (errSync) {
+          console.warn('Nota sincronizando ciudad / acudiente:', errSync);
         }
       }
       
@@ -1311,34 +1323,79 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
         </div>
       );
     case 'location':
+      const selectedCity = (watch('city') || 'Cali') as CityName;
       const selectedCommune = watch('commune');
       return (
-        <div className="space-y-4">
-          <Controller name="commune" control={control} render={({ field }) => (
-            <CommuneSelector 
-              value={field.value} 
-              onChange={(val) => {
-                setValue('commune', val);
-                setValue('neighborhood', '');
-              }} 
-            />
-          )} />
-          {selectedCommune && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-              <Controller name="neighborhood" control={control} render={({ field }) => (
-                <NeighborhoodSelector 
-                  value={field.value} 
-                  commune={selectedCommune}
-                  onChange={(val) => setValue('neighborhood', val)} 
-                />
-              )} />
+        <div className="space-y-3">
+          {/* Selector minimalista de Municipio / Ciudad */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                Municipio o Ciudad
+              </span>
             </div>
-          )}
-          {!selectedCommune && (
-             <p className="text-center text-[10px] uppercase font-black opacity-20 italic">
-               Primero selecciona tu zona para ver los barrios
-             </p>
-          )}
+            <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-foreground/[0.04] dark:bg-foreground/[0.07] border border-foreground/10">
+              {CITIES.map(c => {
+                const isSelected = selectedCity === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      if (selectedCity !== c) {
+                        setValue('city', c);
+                        const firstCommune = COMMUNES_BY_CITY[c]?.[0] || '';
+                        setValue('commune', firstCommune);
+                        setValue('neighborhood', '');
+                      }
+                    }}
+                    className={`h-8 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all duration-150 flex items-center justify-center ${
+                      isSelected
+                        ? 'bg-primary text-white shadow-sm font-black'
+                        : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <Controller name="commune" control={control} render={({ field }) => (
+              <CommuneSelector 
+                value={field.value} 
+                city={selectedCity}
+                communes={COMMUNES_BY_CITY[selectedCity]}
+                onChange={(val) => {
+                  setValue('commune', val);
+                  setValue('neighborhood', '');
+                }} 
+              />
+            )} />
+            {errors.commune && (
+              <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest italic mt-1.5 ml-2">
+                {errors.commune.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller name="neighborhood" control={control} render={({ field }) => (
+              <NeighborhoodSelector 
+                value={field.value} 
+                commune={selectedCommune}
+                city={selectedCity}
+                onChange={(val) => setValue('neighborhood', val)} 
+              />
+            )} />
+            {errors.neighborhood && (
+              <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest italic mt-1.5 ml-2">
+                {errors.neighborhood.message}
+              </p>
+            )}
+          </div>
         </div>
       );
     case 'is_working':
@@ -1738,9 +1795,6 @@ function renderStepFields(id: string, { control, errors, setValue, watch, age, i
                 <li>Revocar la autorización y solicitar la supresión de mis datos cuando no exista un deber legal que lo impida.</li>
                 <li>Acceder de forma gratuita a mis datos tratados.</li>
               </ul>
-              <p className="mt-2">
-                Para ejercer estos derechos o radicar cualquier consulta o solicitud de Habeas Data, puedo contactar al equipo a través del correo electrónico: <a href="mailto:contacto@miravecaliesdetodos.site" className="text-primary font-bold underline">contacto@miravecaliesdetodos.site</a> indicando nombre completo y número de documento.
-              </p>
             </div>
             <div>
               <p className="font-bold text-foreground/90 mb-1">6. Declaración de Conformidad</p>
@@ -1794,33 +1848,56 @@ interface SelectableCardProps {
   key?: any;
 }
 
-function NeighborhoodSelector({ value, commune, onChange }: { value: string, commune: string, onChange: (val: string) => void }) {
+const normalizeSearchText = (text: string) =>
+  (text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+function NeighborhoodSelector({ 
+  value, 
+  commune, 
+  onChange, 
+  city = 'Cali' 
+}: { 
+  value: string;
+  commune: string;
+  onChange: (val: string) => void;
+  city?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   const neighborhoods = useMemo(() => {
-    return NEIGHBORHOODS_BY_COMMUNE[commune] || [];
-  }, [commune]);
+    return getNeighborhoodsFor(city, commune);
+  }, [city, commune]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return neighborhoods;
-    const s = search.toLowerCase().trim();
-    return neighborhoods.filter(n => n.toLowerCase().includes(s));
+    const s = normalizeSearchText(search);
+    return neighborhoods.filter(n => normalizeSearchText(n).includes(s));
   }, [search, neighborhoods]);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
-        className="w-full h-16 md:h-20 rounded-2xl bg-foreground/[0.03] dark:bg-foreground/5 border border-foreground/20 dark:border-foreground/10 px-6 flex items-center justify-between group hover:border-primary/50 transition-all shadow-sm"
+        onClick={() => {
+          if (!commune) {
+            toast.info('Primero selecciona tu comuna o corregimiento');
+            return;
+          }
+          setIsOpen(true);
+        }}
+        className="w-full h-16 rounded-2xl bg-foreground/[0.03] dark:bg-foreground/5 border border-foreground/20 dark:border-foreground/10 px-6 flex items-center justify-between group hover:border-primary/50 transition-all shadow-sm"
       >
         <div className="flex flex-col items-start overflow-hidden text-left">
-          <span className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-40">Barrio en {commune}</span>
-          <span className="text-sm font-bold uppercase truncate max-w-[200px] text-foreground/90">{value || 'Seleccionar barrio...'}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-40">Barrio</span>
+          <span className="text-sm font-bold uppercase truncate max-w-[200px] text-foreground/90">{value || (commune ? 'Seleccionar barrio...' : 'Primero selecciona comuna...')}</span>
         </div>
-        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-all">
-          <ChevronRight className="w-5 h-5 opacity-50 group-hover:opacity-100 transition-opacity" />
+        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-all">
+          <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
         </div>
       </button>
 
@@ -1867,7 +1944,7 @@ function NeighborhoodSelector({ value, commune, onChange }: { value: string, com
               <div className="flex-1 overflow-y-auto space-y-2 px-2 custom-scrollbar">
                 <div className="grid grid-cols-1 gap-2">
                   {/* Dynamic 'Other' option at the TOP for quick access */}
-                  {search.trim().length > 2 && !neighborhoods.some(n => n.toLowerCase() === search.toLowerCase().trim()) && (
+                  {search.trim().length > 2 && !neighborhoods.some(n => normalizeSearchText(n) === normalizeSearchText(search)) && (
                     <button
                         type="button"
                         onClick={() => {
@@ -1909,7 +1986,7 @@ function NeighborhoodSelector({ value, commune, onChange }: { value: string, com
                     <p className="text-[10px] uppercase font-black px-8">Selecciona o busca en los barrios oficiales de la {commune}</p>
                   </div>
                 )}
-                {filtered.length === 0 && search.trim().length > 2 && !neighborhoods.some(n => n.toLowerCase() === search.toLowerCase().trim()) && (
+                {filtered.length === 0 && search.trim().length > 2 && !neighborhoods.some(n => normalizeSearchText(n) === normalizeSearchText(search)) && (
                    <div className="py-8 text-center px-4">
                      <p className="text-[10px] uppercase font-black opacity-30 italic leading-relaxed">
                        Si no encuentras el barrio en la {commune}, pulsa el botón "OTRO" arriba.
@@ -1926,13 +2003,27 @@ function NeighborhoodSelector({ value, commune, onChange }: { value: string, com
 }
 
 
-function CommuneSelector({ value, onChange }: { value: string, onChange: (val: string) => void }) {
+function CommuneSelector({ 
+  value, 
+  onChange,
+  city = 'Cali',
+  communes
+}: { 
+  value: string;
+  onChange: (val: string) => void;
+  city?: string;
+  communes?: string[];
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const filtered = CALI_COMMUNES.filter(c => 
-    c.toLowerCase().includes(search.toLowerCase())
-  );
+  const list = communes || (city && COMMUNES_BY_CITY[city as CityName]) || CALI_COMMUNES;
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return list;
+    const s = normalizeSearchText(search);
+    return list.filter(c => normalizeSearchText(c).includes(s));
+  }, [search, list]);
 
   return (
     <>

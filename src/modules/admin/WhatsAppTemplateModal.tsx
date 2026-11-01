@@ -82,7 +82,7 @@ const TEMPLATES_INFO: Record<TemplateType, {
     title: 'Bienvenida',
     badge: 'Institucional',
     shortDesc: 'Felicitación y saludo',
-    whenToUse: 'Usa esta plantilla para dar la bienvenida oficial a la familia al movimiento Juventudes MIRA Cali.',
+    whenToUse: 'Usa esta plantilla para dar la bienvenida oficial a la familia a Mirá ve, Cali es de todos.',
     icon: '🏛️'
   },
   emergency: {

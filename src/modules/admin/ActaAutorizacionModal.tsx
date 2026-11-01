@@ -239,7 +239,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
           <div className="border-b-2 border-primary/20 pb-4 mb-6 flex items-start justify-between gap-4">
             <div>
               <div className="inline-block px-2.5 py-0.5 rounded bg-primary/10 text-primary font-black text-[10px] uppercase tracking-wider mb-1">
-                Juventudes MIRA Santiago de Cali
+                Mirá ve, Cali es de todos
               </div>
               <h2 className="text-sm sm:text-base font-black tracking-tight text-slate-900 uppercase">
                 Acta de Consentimiento Informado y Autorización de Menores
@@ -279,7 +279,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
               </div>
               <div>
                 <span className="text-slate-500 block text-[9px] uppercase font-bold">Ubicación Territorial:</span>
-                <span className="font-semibold text-slate-800">Comuna {record.commune || 'Cali'} - {record.neighborhood || 'Barrio no especificado'}</span>
+                <span className="font-semibold text-slate-800">{record.commune?.toString().toLowerCase().startsWith('comuna') || record.commune?.toString().toLowerCase().startsWith('corregimiento') ? record.commune : `Comuna ${record.commune || 'Cali'}`} - {record.neighborhood || 'Barrio no especificado'}</span>
               </div>
             </div>
 
@@ -290,7 +290,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
                 Autorización de Participación y Protección de Datos
               </h4>
               <p>
-                <strong>1. PARTICIPACIÓN Y TALLERES:</strong> Autorizo voluntariamente la vinculación y participación de mi representado(a) en las actividades gratuitas de formación en liderazgo, arte, deporte, cultura y desarrollo comunitario organizadas por <em>Juventudes MIRA Santiago de Cali</em>.
+                <strong>1. PARTICIPACIÓN Y TALLERES:</strong> Autorizo voluntariamente la vinculación y participación de mi representado(a) en las actividades de formación en liderazgo, arte, deporte, cultura y desarrollo comunitario organizadas por <em>Juventudes MIRA Santiago de Cali</em>.
               </p>
               <p>
                 <strong>2. TRATAMIENTO DE DATOS PERSONALES:</strong> Autorizo de manera previa, voluntaria e informada el registro de datos básicos de contacto con fines exclusivos de comunicación institucional, avisos de actividades y seguimiento pedagógico (Ley 1581 de 2012). Estos datos no se venden ni se comparten con fines comerciales.
@@ -299,11 +299,7 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
                 <strong>3. MEMORIA FOTOGRÁFICA INSTITUCIONAL:</strong> Autorizo la toma de fotografías o grabaciones grupales de las actividades desarrolladas para la difusión institucional de los programas juveniles sin fines de lucro.
               </p>
               <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-[10.5px] text-slate-700">
-                <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización escribiendo al correo:{' '}
-                <a href="mailto:juventudesmiracali@gmail.com" className="font-bold text-primary underline">
-                  juventudesmiracali@gmail.com
-                </a>{' '}
-                o a través de los canales de coordinación juvenil en Santiago de Cali.
+                <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización a través de los canales de coordinación juvenil en Santiago de Cali.
               </div>
             </div>
 

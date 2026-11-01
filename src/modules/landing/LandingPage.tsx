@@ -42,7 +42,7 @@ export default function LandingPage() {
                 transition={{ duration: 1.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
                 className="text-[52px] sm:text-[68px] md:text-[76px] font-[900] leading-[0.92] tracking-tight text-[#002b79] dark:text-white transition-colors"
               >
-                ¡MIRA VÉ!
+                ¡MIRÁ VE!
               </motion.span>
 
               {/* CALI ES DE TODOS: animación suave y pausada deslizándose desde la derecha */}

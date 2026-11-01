@@ -128,9 +128,9 @@ export function getGuardianAuthMessageText(record: YouthGuardianData, origin?: s
 
   return `¡Hola, *${guardianName}*! 👋💙
 
-Le saludamos con mucho aprecio y respeto de parte del equipo de *Juventudes MIRA Santiago de Cali* 🏛️✨.
+Le saludamos con mucho aprecio y respeto de parte del equipo de *Mirá ve, Cali es de todos* ✨.
 
-Nos comunicamos con usted como ${relationship} para informarle que su ${sonOrDaughter}, *${youthName}* (${youthAge}), se ha vinculado a nuestras actividades gratuitas de formación en valores, liderazgo, cultura y deporte juvenil en Santiago de Cali 🌟.
+Nos comunicamos con usted como ${relationship} para informarle que su ${sonOrDaughter}, *${youthName}* (${youthAge}), se ha vinculado a nuestras actividades de formación en valores, liderazgo, cultura y deporte juvenil en Santiago de Cali 🌟.
 
 Para garantizar la protección legal de sus datos y contar con su visto bueno como acudiente responsable (Ley 1581 de 2012 y Ley 527 de 1999), le agradecemos ingresar al siguiente enlace seguro para firmar la autorización digital en solo 30 segundos desde su celular 📲✍️:
 
@@ -140,7 +140,7 @@ Al abrir el enlace encontrará los datos de su ${sonOrDaughter} y un recuadro se
 
 ¡Muchas gracias por su apoyo y confianza en el desarrollo de la juventud caleña! 🙏💙
 
-*Equipo Juventudes MIRA Cali*`;
+*Mirá ve, Cali es de todos*`;
 }
 
 export function buildGuardianAuthWhatsAppUrl(record: YouthGuardianData, origin?: string): string {
@@ -161,7 +161,7 @@ export function getGuardianReminderMessageText(record: YouthGuardianData, origin
 
   return `¡Hola de nuevo, *${guardianName}*! 👋💙
 
-Esperamos que tenga un excelente día. Le escribimos cordialmente de *Juventudes MIRA Cali* con relación a su ${sonOrDaughter}, *${youthName}*.
+Esperamos que tenga un excelente día. Le escribimos cordialmente de *Mirá ve, Cali es de todos* con relación a su ${sonOrDaughter}, *${youthName}*.
 
 Notamos que aún está pendiente la firma de la autorización parental requerida para participar formalmente en nuestros talleres y encuentros juveniles 🌟.
 
@@ -171,7 +171,7 @@ Es muy fácil y rápido, solo toma 30 segundos en el celular:
 
 Agradecemos mucho su valiosa colaboración para que su ${sonOrDaughter} cuente con todo en regla. Si tiene alguna inquietud, con gusto estamos atentos a este chat. ¡Muchas bendiciones! 🙏💙
 
-*Equipo Juventudes MIRA Cali*`;
+*Mirá ve, Cali es de todos*`;
 }
 
 export function buildGuardianReminderWhatsAppUrl(record: YouthGuardianData, origin?: string): string {
@@ -197,17 +197,17 @@ export function getGuardianWelcomeMessageText(record: YouthGuardianData): string
 
   return `¡Hola, *${guardianName}*! 👋💙
 
-Le saludamos con mucho aprecio y respeto de parte del equipo de *Juventudes MIRA Santiago de Cali* 🏛️✨.
+Le saludamos con mucho aprecio y respeto de parte del equipo de *Mirá ve, Cali es de todos* ✨.
 
 Nos comunicamos cordialmente con usted como ${relationship} para informarle que su ${sonOrDaughter}, *${youthName}* (${youthAge}), completó con éxito su registro oficial en nuestra *Caracterización Juvenil* ${zoneInfo} 📍.
 
-Queremos felicitarle y reiterarle que en Juventudes MIRA trabajamos con dedicación para promover espacios seguros de formación en liderazgo, cultura, deporte, educación y oportunidades reales para los jóvenes de nuestra ciudad 🌟.
+Queremos felicitarle y reiterarle que en Mirá ve, Cali es de todos trabajamos con dedicación para promover espacios seguros de formación en liderazgo, cultura, deporte, educación y oportunidades reales para los jóvenes de nuestra ciudad 🌟.
 
 Quedamos a su entera disposición ante cualquier duda o para mantenerle informado(a) sobre nuestras próximas actividades y encuentros juveniles.
 
 ¡Le deseamos un excelente día y muchas bendiciones para su hogar! 🙏💙
 
-*Equipo Juventudes MIRA Cali*`;
+*Mirá ve, Cali es de todos*`;
 }
 
 export function buildGuardianWhatsAppUrl(record: YouthGuardianData): string {
@@ -227,7 +227,7 @@ export function getGuardianEmergencyMessageText(record: YouthGuardianData): stri
 
   return `¡Hola, *${guardianName}*! 👋💙
 
-Le escribimos con atención desde la coordinación de *Juventudes MIRA Cali* respecto a su ${sonOrDaughter}, *${youthName}*.
+Le escribimos con atención desde la coordinación de *Mirá ve, Cali es de todos* respecto a su ${sonOrDaughter}, *${youthName}*.
 
 Por favor confírmenos si se encuentra disponible para comunicarnos brevemente con usted en este momento con relación a una actividad juvenil en Santiago de Cali. ¡Muchas gracias por su atención! 🙏`;
 }
@@ -247,7 +247,7 @@ export function buildParentConfirmationWhatsAppUrl(record: YouthGuardianData, co
   const youthName = `${record.first_name || ''} ${record.last_name || ''}`.trim() || 'mi hijo(a)';
   const phone = getNormalizedColombianPhone(coordPhone);
 
-  const message = `¡Hola, equipo de Juventudes MIRA Cali! 👋💙
+  const message = `¡Hola, equipo de Mirá ve, Cali es de todos! 👋💙
 
 Les confirmo que soy *${guardianName}*, acudiente de *${youthName}*, y acabo de firmar exitosamente la autorización digital en la plataforma web ✅✍️.
 
@@ -266,7 +266,7 @@ export function buildYouthWhatsAppUrl(record: { first_name?: string; last_name?:
   const zone = record.commune ? ` de la Comuna ${record.commune}` : '';
   const message = `¡Hola, *${firstName}*! 👋💙
 
-Te saludamos cordialmente del equipo de *Juventudes MIRA Cali* 🏛️✨.
+Te saludamos cordialmente del equipo de *Mirá ve, Cali es de todos* ✨.
 
 Esperamos que estés muy bien. Te contactamos con relación a tu registro en nuestra Caracterización Juvenil${zone}. ¡Nos alegra mucho saludarte! 🌟`;
 

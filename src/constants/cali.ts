@@ -1,3 +1,6 @@
+export const CITIES = ['Cali', 'Jamundí', 'Yumbo'] as const;
+export type CityName = typeof CITIES[number];
+
 export const CALI_COMMUNES = [
   'Comuna 1', 'Comuna 2', 'Comuna 3', 'Comuna 4', 'Comuna 5',
   'Comuna 6', 'Comuna 7', 'Comuna 8', 'Comuna 9', 'Comuna 10',
@@ -11,6 +14,43 @@ export const CALI_COMMUNES = [
   'Corregimiento Montebello', 'Corregimiento Pance', 'Corregimiento Hormiguero'
 ];
 
+export const YUMBO_COMMUNES = [
+  'Comuna 1',
+  'Comuna 2',
+  'Comuna 3',
+  'Comuna 4',
+  'Corregimiento Dapa',
+  'Corregimiento Mulaló',
+  'Corregimiento San Marcos',
+  'Corregimiento Yumbillo',
+  'Corregimiento Montañitas',
+  'Corregimiento Santa Inés',
+  'Corregimiento La Cumbrecita',
+  'Corregimiento Platanares'
+];
+
+export const JAMUNDI_COMMUNES = [
+  'Comuna 1 (Zona Centro / Occidental)',
+  'Comuna 2 (Zona Expansión / Ciudadelas)',
+  'Corregimiento Potrerito',
+  'Corregimiento Villa Paz',
+  'Corregimiento Robles',
+  'Corregimiento Quinamayó',
+  'Corregimiento Timba',
+  'Corregimiento San Antonio',
+  'Corregimiento Ampudia',
+  'Corregimiento Villacolombia',
+  'Corregimiento Paso de la Bolsa',
+  'Corregimiento Guachinte',
+  'Corregimiento Chagres'
+];
+
+export const COMMUNES_BY_CITY: Record<CityName, string[]> = {
+  'Cali': CALI_COMMUNES,
+  'Jamundí': JAMUNDI_COMMUNES,
+  'Yumbo': YUMBO_COMMUNES
+};
+
 export const STUDY_AREAS = [
   'Tecnología / TI',
   'Derecho y Ciencias Políticas',
@@ -22,6 +62,12 @@ export const STUDY_AREAS = [
   'Educación',
   'Comunicación / Marketing',
   'Logística y Operación',
+  'Idiomas y Lenguas Extranjeras',
+  'Gastronomía y Cocina',
+  'Veterinaria y Cuidado Animal',
+  'Belleza y Cuidado Personal',
+  'Deporte y Actividad Física',
+  'Turismo y Hotelería',
   'Otra'
 ];
 
@@ -81,6 +127,57 @@ export const NEIGHBORHOODS_BY_COMMUNE: Record<string, string[]> = {
   'Corregimiento Pance': ['Pance'],
   'Corregimiento Hormiguero': ['Hormiguero']
 };
+
+export const YUMBO_NEIGHBORHOODS_BY_COMMUNE: Record<string, string[]> = {
+  'Comuna 1': ['Belalcázar', 'Bolívar', 'Puerto Isaacs', 'Las Américas', 'Guacandá', 'José María Córdoba', 'El Pedregal', 'Nuevo Horizonte'],
+  'Comuna 2': ['Fray Peña', 'Portales de Comfandi', 'Pizarro', 'La Estancia', 'Madre Vieja', 'San Fernando', 'Buenos Aires', 'La Ceiba'],
+  'Comuna 3': ['Panorama', 'Uribe Uribe', 'Valles de Yumbo', 'Juan Pablo II', 'Guadalupe', 'Bellavista Baja'],
+  'Comuna 4': ['Bellavista', 'La Alborada', 'San Jorge', 'Lleras Camargo', 'Hacienda Rosablanca', 'Villas de Comfandi'],
+  'Corregimiento Dapa': ['Dapa Centro', 'Miravalle', 'Rincón Dapa', 'Medio Dapa', 'Alto Dapa'],
+  'Corregimiento Mulaló': ['Mulaló Centro', 'Manga Vieja', 'El Placer'],
+  'Corregimiento San Marcos': ['San Marcos Centro', 'Viña del Mar'],
+  'Corregimiento Yumbillo': ['Yumbillo', 'La Olga'],
+  'Corregimiento Montañitas': ['Montañitas Centro', 'Santa Inés'],
+  'Corregimiento Santa Inés': ['Santa Inés'],
+  'Corregimiento La Cumbrecita': ['La Cumbrecita'],
+  'Corregimiento Platanares': ['Platanares']
+};
+
+export const JAMUNDI_NEIGHBORHOODS_BY_COMMUNE: Record<string, string[]> = {
+  'Comuna 1 (Zona Centro / Occidental)': [
+    'Centro', 'El Rosario', 'La Esmeralda', 'Libertadores', 'Portal de Jamundí', 
+    'Sachamate', 'Pangola', 'El Rodeo', 'La Pradera', 'Rincón de Zaragoza', 
+    'Bello Horizonte', 'La Ceibita', 'El Bosque', 'La Alborada'
+  ],
+  'Comuna 2 (Zona Expansión / Ciudadelas)': [
+    'Terranova', 'El Piloto', 'Ciudad de Dios', 'Bonanza', 'Las Flores', 
+    'Ciudad Sur', 'Portal del Jordán', 'Campestre', 'Solarte', 'El Paraíso', 
+    'Vergel', 'Manuela Beltrán', 'Arboleda', 'Bochalema Jamundí', 'Riberas del Rosario'
+  ],
+  'Corregimiento Potrerito': ['Potrerito Centro', 'San Antonio', 'Miravalle', 'La Liberia', 'Rincón Santo'],
+  'Corregimiento Villa Paz': ['Villa Paz', 'San Vicente'],
+  'Corregimiento Robles': ['Robles Centro'],
+  'Corregimiento Quinamayó': ['Quinamayó Centro'],
+  'Corregimiento Timba': ['Timba Valle'],
+  'Corregimiento San Antonio': ['San Antonio'],
+  'Corregimiento Ampudia': ['Ampudia'],
+  'Corregimiento Villacolombia': ['Villacolombia'],
+  'Corregimiento Paso de la Bolsa': ['Paso de la Bolsa'],
+  'Corregimiento Guachinte': ['Guachinte'],
+  'Corregimiento Chagres': ['Chagres']
+};
+
+export const NEIGHBORHOODS_BY_CITY: Record<CityName, Record<string, string[]>> = {
+  'Cali': NEIGHBORHOODS_BY_COMMUNE,
+  'Jamundí': JAMUNDI_NEIGHBORHOODS_BY_COMMUNE,
+  'Yumbo': YUMBO_NEIGHBORHOODS_BY_COMMUNE
+};
+
+export function getNeighborhoodsFor(city: string | undefined, commune: string): string[] {
+  const cityName = (city && (city === 'Jamundí' || city === 'Yumbo' || city === 'Cali')) ? (city as CityName) : 'Cali';
+  const dict = NEIGHBORHOODS_BY_CITY[cityName] || NEIGHBORHOODS_BY_COMMUNE;
+  return dict[commune] || [];
+}
 
 export const CALI_NEIGHBORHOODS = Object.values(NEIGHBORHOODS_BY_COMMUNE).flat();
 

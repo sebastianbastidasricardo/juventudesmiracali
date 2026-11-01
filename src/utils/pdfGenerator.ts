@@ -50,7 +50,9 @@ function buildActaHtmlString(record: ActaRecordData): string {
   const minorDoc = `${record.document_type || 'TI'} No. ${record.document_number || '________________'}`;
   const minorAge = record.age ? `${record.age} años` : '--';
   const minorBirth = record.birth_date ? ` (${record.birth_date})` : '';
-  const location = `Comuna ${record.commune || 'Cali'} - ${record.neighborhood || 'Barrio no especificado'}`;
+  const location = record.commune?.toString().toLowerCase().startsWith('comuna') || record.commune?.toString().toLowerCase().startsWith('corregimiento')
+    ? `${record.commune} - ${record.neighborhood || 'Barrio no especificado'}`
+    : `Comuna ${record.commune || 'Cali'} - ${record.neighborhood || 'Barrio no especificado'}`;
   const tokenHash = record.guardian_token || record.id || 'N/A';
   const guardianPhone = record.guardian_phone || 'Sin número';
 
@@ -65,7 +67,7 @@ function buildActaHtmlString(record: ActaRecordData): string {
       <div style="border-bottom: 2px solid #002B79; padding-bottom: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
         <div style="flex: 1;">
           <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; background-color: rgba(0, 43, 121, 0.08); color: #002B79; font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-            JUVENTUDES MIRA SANTIAGO DE CALI
+            MIRÁ VE, CALI ES DE TODOS
           </div>
           <h2 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: -0.3px; line-height: 1.25;">
             ACTA DE CONSENTIMIENTO INFORMADO Y AUTORIZACIÓN DE MENORES
@@ -115,7 +117,7 @@ function buildActaHtmlString(record: ActaRecordData): string {
         </div>
 
         <div style="font-size: 10.5px; color: #334155; line-height: 1.4; text-align: justify; margin-bottom: 6px;">
-          <strong style="color: #0f172a;">1. PARTICIPACIÓN Y TALLERES:</strong> Autorizo voluntariamente la vinculación y participación de mi representado(a) en las actividades gratuitas de formación en liderazgo, arte, deporte, cultura y desarrollo comunitario organizadas por <em>Juventudes MIRA Santiago de Cali</em>.
+          <strong style="color: #0f172a;">1. PARTICIPACIÓN Y TALLERES:</strong> Autorizo voluntariamente la vinculación y participación de mi representado(a) en las actividades de formación en liderazgo, arte, deporte, cultura y desarrollo comunitario organizadas por <em>Juventudes MIRA Santiago de Cali</em>.
         </div>
 
         <div style="font-size: 10.5px; color: #334155; line-height: 1.4; text-align: justify; margin-bottom: 6px;">
@@ -128,7 +130,7 @@ function buildActaHtmlString(record: ActaRecordData): string {
 
         <!-- RECUADRO CANAL DE CONSULTAS -->
         <div style="padding: 8px 12px; border-radius: 6px; background-color: #eff6ff; border: 1px solid #bfdbfe; font-size: 10px; color: #1e3a8a; line-height: 1.35;">
-          <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización escribiendo al correo: <a href="mailto:juventudesmiracali@gmail.com" style="color: #002B79; font-weight: bold; text-decoration: underline;">juventudesmiracali@gmail.com</a> o a través de los canales de coordinación juvenil en Santiago de Cali.
+          <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización a través de los canales de coordinación juvenil en Santiago de Cali.
         </div>
       </div>
 

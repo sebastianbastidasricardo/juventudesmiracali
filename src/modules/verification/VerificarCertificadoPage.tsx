@@ -67,7 +67,11 @@ export default function VerificarCertificadoPage() {
             documentType: data.document_type || 'CC',
             documentMasked: masked,
             code: data.certificate_code || cleanCode,
-            commune: data.commune ? `Comuna ${data.commune}` : undefined,
+            commune: data.commune 
+              ? (data.commune.toLowerCase().startsWith('comuna') || data.commune.toLowerCase().startsWith('corregimiento')
+                  ? data.commune
+                  : `Comuna ${data.commune}`)
+              : undefined,
             neighborhood: data.neighborhood ? `B/ ${data.neighborhood}` : undefined,
             date: dateStr,
             isValid: true,
@@ -244,7 +248,7 @@ export default function VerificarCertificadoPage() {
               </div>
 
               <div className="text-[11px] text-center text-muted-foreground">
-                Santiago de Cali, Valle del Cauca • Movimiento Político MIRA
+                Santiago de Cali, Valle del Cauca • MIRA
               </div>
             </motion.div>
           ) : searched && !certData ? (

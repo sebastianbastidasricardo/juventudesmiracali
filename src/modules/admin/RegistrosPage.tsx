@@ -61,13 +61,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EditRegistroDialog } from './EditRegistroDialog';
-import { CALI_COMMUNES, NEIGHBORHOODS_BY_COMMUNE, TALENTS_CATEGORIES, EDUCATION_LEVELS, INTERESTS } from '@/constants/cali';
+import { CITIES, CALI_COMMUNES, JAMUNDI_COMMUNES, YUMBO_COMMUNES, STUDY_AREAS, NEIGHBORHOODS_BY_COMMUNE, TALENTS_CATEGORIES, EDUCATION_LEVELS, INTERESTS } from '@/constants/cali';
 import { calculateAge } from '@/utils/validators';
 
 export default function RegistrosPage() {
   const [registros, setRegistros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCity, setFilterCity] = useState('all');
   const [filterCommune, setFilterCommune] = useState('all');
   const [filterGender, setFilterGender] = useState('all');
   const [filterEducation, setFilterEducation] = useState('all');
@@ -94,9 +95,16 @@ export default function RegistrosPage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const pageSize = 25;
 
+  const availableCommunes = React.useMemo(() => {
+    if (filterCity === 'Cali') return CALI_COMMUNES;
+    if (filterCity === 'Jamundí') return JAMUNDI_COMMUNES;
+    if (filterCity === 'Yumbo') return YUMBO_COMMUNES;
+    return [...CALI_COMMUNES, ...JAMUNDI_COMMUNES, ...YUMBO_COMMUNES];
+  }, [filterCity]);
+
   useEffect(() => {
     fetchRegistros();
-  }, [currentPage, searchTerm, filterCommune, filterGender, filterEducation, boolFilters, filterAge, filterInternal, filterMilitary, filterHQ, filterStudyArea, filterTalent, filterInterest]);
+  }, [currentPage, searchTerm, filterCity, filterCommune, filterGender, filterEducation, boolFilters, filterAge, filterInternal, filterMilitary, filterHQ, filterStudyArea, filterTalent, filterInterest]);
 
   const fetchRegistros = async () => {
     setLoading(true);
@@ -140,8 +148,16 @@ export default function RegistrosPage() {
     } else {
       let filtered = data || [];
       
-      // Calculate age for all fetched records
-      filtered = filtered.map(r => ({ ...r, age: calculateAge(r.birth_date) }));
+      // Calculate age and city for all fetched records
+      filtered = filtered.map(r => ({ 
+        ...r, 
+        age: calculateAge(r.birth_date),
+        city: r.city || (JAMUNDI_COMMUNES.includes(r.commune) ? 'Jamundí' : YUMBO_COMMUNES.includes(r.commune) ? 'Yumbo' : 'Cali')
+      }));
+      
+      if (filterCity !== 'all') {
+        filtered = filtered.filter(d => d.city === filterCity);
+      }
       
       if (filterAge.operator !== 'all') {
         const val = filterAge.value;
@@ -260,9 +276,16 @@ export default function RegistrosPage() {
       
       let finalData = data || [];
       
-      finalData = finalData.map(r => ({ ...r, age: calculateAge(r.birth_date) }));
+      finalData = finalData.map(r => ({ 
+        ...r, 
+        age: calculateAge(r.birth_date),
+        city: r.city || (JAMUNDI_COMMUNES.includes(r.commune) ? 'Jamundí' : YUMBO_COMMUNES.includes(r.commune) ? 'Yumbo' : 'Cali')
+      }));
 
       if (onlyFiltered) {
+        if (filterCity !== 'all') {
+          finalData = finalData.filter(d => d.city === filterCity);
+        }
         if (filterAge.operator !== 'all') {
           const val = filterAge.value;
           const val2 = filterAge.value2;
@@ -300,7 +323,8 @@ export default function RegistrosPage() {
         'Sit. Militar': d.military_status || 'N/A',
         'Teléfono': d.phone,
         'Email': d.email,
-        'Comuna': d.commune,
+        'Ciudad': d.city || 'Cali',
+        'Comuna / Sector': d.commune,
         'Barrio': d.neighborhood,
         'Educación': d.education_level,
         'Área Estudio': Array.isArray(d.study_area) ? d.study_area.join(', ') : (d.study_area || 'N/A'),
@@ -417,11 +441,11 @@ export default function RegistrosPage() {
                 <div className="w-full sm:w-48">
                    <Select value={filterCommune} onValueChange={(val) => { setFilterCommune(val); setCurrentPage(1); }}>
                       <SelectTrigger className="h-12 bg-foreground/5 border-foreground/10 rounded-xl font-bold shadow-sm">
-                         <span className="truncate">{filterCommune === 'all' ? 'Comuna' : filterCommune}</span>
+                         <span className="truncate">{filterCommune === 'all' ? 'Comuna / Sector' : filterCommune}</span>
                       </SelectTrigger>
                       <SelectContent className="glass-dark border-foreground/10 max-h-[400px] w-[calc(100vw-2rem)] md:w-[300px]">
                          <SelectItem value="all" className="font-black">Todas las Comunas</SelectItem>
-                         {CALI_COMMUNES.map(c => (
+                         {availableCommunes.map(c => (
                             <SelectItem key={c} value={c}>{c}</SelectItem>
                          ))}
                       </SelectContent>
@@ -456,6 +480,21 @@ export default function RegistrosPage() {
                  className="overflow-hidden"
                >
                  <div className="p-4 md:p-6 bg-foreground/5 rounded-[1.5rem] mt-2 border border-foreground/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase opacity-40 ml-1">Municipio / Ciudad</label>
+                       <Select value={filterCity} onValueChange={(val) => { setFilterCity(val); setFilterCommune('all'); setCurrentPage(1); }}>
+                          <SelectTrigger className="glass-dark border-none rounded-xl h-10 font-bold">
+                             <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="glass-dark border-foreground/10">
+                             <SelectItem value="all">Ciudad (Todas)</SelectItem>
+                             <SelectItem value="Cali">Cali</SelectItem>
+                             <SelectItem value="Jamundí">Jamundí</SelectItem>
+                             <SelectItem value="Yumbo">Yumbo</SelectItem>
+                          </SelectContent>
+                       </Select>
+                    </div>
+
                     <div className="space-y-2">
                        <label className="text-[10px] font-black uppercase opacity-40 ml-1">Género</label>
                        <Select value={filterGender} onValueChange={setFilterGender}>
@@ -582,12 +621,12 @@ export default function RegistrosPage() {
                              size="sm" 
                              variant="ghost" 
                              onClick={() => {
-                               setSearchTerm(''); setFilterCommune('all'); setFilterGender('all'); 
+                               setSearchTerm(''); setFilterCity('all'); setFilterCommune('all'); setFilterGender('all'); 
                                setFilterEducation('all');
                                setBoolFilters({working:'all', entrepreneur:'all', organization:'all', subscribed:'all'});
                                setFilterAge({operator:'all', value:18, value2:25});
                                setFilterInternal('all'); setFilterMilitary('all'); setFilterHQ('all'); setFilterStudyArea('all');
-                               setFilterTalent('all');
+                               setFilterTalent('all'); setFilterInterest('all');
                              }}
                              className="h-8 rounded-lg text-[10px] font-black uppercase tracking-tight px-3 text-rose-500 hover:bg-rose-500/10"
                           >
@@ -639,12 +678,7 @@ export default function RegistrosPage() {
                           </SelectTrigger>
                           <SelectContent className="glass-dark border-foreground/10 max-h-[300px]">
                              <SelectItem value="all">Todas</SelectItem>
-                             {[
-                                'Tecnología / TI', 'Derecho y Ciencias Políticas', 'Salud / Medicina',
-                                'Ingeniería', 'Arte / Diseño', 'Administración y Negocios',
-                                'Servicio al Cliente y Ventas', 'Educación', 'Comunicación / Marketing',
-                                'Logística y Operación', 'Otra'
-                             ].map(area => (
+                             {STUDY_AREAS.map(area => (
                                 <SelectItem key={area} value={area}>{area}</SelectItem>
                              ))}
                           </SelectContent>
@@ -719,12 +753,12 @@ export default function RegistrosPage() {
                          <Search className="w-16 h-16" />
                          <p className="font-black uppercase tracking-[0.3em] text-[10px] italic">Sin resultados para estos filtros</p>
                          <Button variant="link" size="sm" onClick={() => {
-                            setSearchTerm(''); setFilterCommune('all'); setFilterGender('all'); 
+                            setSearchTerm(''); setFilterCity('all'); setFilterCommune('all'); setFilterGender('all'); 
                             setFilterEducation('all');
                             setBoolFilters({working:'all', entrepreneur:'all', organization:'all', subscribed:'all'});
                             setFilterAge({operator:'all', value:18, value2:25});
                             setFilterInternal('all'); setFilterMilitary('all'); setFilterHQ('all'); setFilterStudyArea('all');
-                            setFilterTalent('all');
+                            setFilterTalent('all'); setFilterInterest('all');
                          }}>Limpiar filtros</Button>
                       </div>
                     </TableCell>

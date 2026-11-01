@@ -10,10 +10,12 @@ import { supabase } from '@/lib/supabase';
 import { calculateAge } from '@/utils/validators';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { JAMUNDI_COMMUNES, YUMBO_COMMUNES } from '@/constants/cali';
 
 export default function AdminDashboard() {
   const [allData, setAllData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [globalCityFilter, setGlobalCityFilter] = useState('all');
   const [globalSedeFilter, setGlobalSedeFilter] = useState('all');
   const [globalComunaFilter, setGlobalComunaFilter] = useState('all');
 
@@ -24,6 +26,7 @@ export default function AdminDashboard() {
       const { data, error } = await supabase
         .from('characterization_records')
         .select(`
+          city,
           gender, 
           commune, 
           neighborhood, 
@@ -59,6 +62,7 @@ export default function AdminDashboard() {
         const enrichedData = data.map(d => ({
           ...d,
           age: calculateAge(d.birth_date),
+          city: d.city || (JAMUNDI_COMMUNES.includes(d.commune) ? 'Jamundí' : YUMBO_COMMUNES.includes(d.commune) ? 'Yumbo' : 'Cali'),
           study_area: d.study_area || []
         }));
         setAllData(enrichedData);
@@ -82,11 +86,12 @@ export default function AdminDashboard() {
 
   const filteredData = useMemo(() => {
     return allData.filter(d => {
+       if (globalCityFilter !== 'all' && d.city !== globalCityFilter) return false;
        if (globalComunaFilter !== 'all' && d.commune !== globalComunaFilter) return false;
        if (globalSedeFilter !== 'all' && d.church_headquarters !== globalSedeFilter) return false;
        return true;
     });
-  }, [allData, globalComunaFilter, globalSedeFilter]);
+  }, [allData, globalCityFilter, globalComunaFilter, globalSedeFilter]);
 
   const filterOptions = useMemo(() => {
     const sedes = new Set<string>();
@@ -195,6 +200,18 @@ export default function AdminDashboard() {
            <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-[0.3em]">Comando de Caracterización Juvenil • Cali</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Select value={globalCityFilter} onValueChange={setGlobalCityFilter}>
+              <SelectTrigger className="glass border-none rounded-xl min-w-[140px] font-bold">
+                 <span className="truncate">{globalCityFilter === 'all' ? 'Ciudad' : globalCityFilter}</span>
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px] z-[100] bg-background/95 backdrop-blur-xl border border-foreground/10">
+                <SelectItem value="all">Todas las Ciudades</SelectItem>
+                <SelectItem value="Cali">Cali</SelectItem>
+                <SelectItem value="Jamundí">Jamundí</SelectItem>
+                <SelectItem value="Yumbo">Yumbo</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={globalSedeFilter} onValueChange={setGlobalSedeFilter}>
               <SelectTrigger className="glass border-none rounded-xl min-w-[160px]">
                  <span className="truncate">{globalSedeFilter === 'all' ? 'Sede' : globalSedeFilter}</span>
