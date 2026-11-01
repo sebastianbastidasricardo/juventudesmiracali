@@ -16,16 +16,16 @@ export default function LandingPage() {
       </header>
 
       {/* Contenido Central */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 -mt-10 sm:-mt-14">
-        <div className="w-full max-w-sm flex flex-col items-center text-center space-y-12 sm:space-y-14">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 -mt-8 sm:-mt-12">
+        <div className="w-full max-w-md sm:max-w-lg flex flex-col items-center text-center space-y-10 sm:space-y-12">
           
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full">
             {/* Pill: • CARACTERIZACIÓN (Entrada suave desde arriba) */}
             <motion.div
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-              className="inline-flex items-center gap-2.5 px-6 py-1.5 rounded-full bg-[#f0f4fc] dark:bg-primary/15 border border-[#d3e0f5] dark:border-primary/30 mb-3 shadow-xs transition-colors"
+              className="inline-flex items-center gap-2.5 px-6 py-1.5 rounded-full bg-[#f0f4fc] dark:bg-primary/15 border border-[#d3e0f5] dark:border-primary/30 mb-4 shadow-xs transition-colors"
             >
               <div className="w-2 h-2 rounded-full bg-[#002b79] dark:bg-primary shrink-0 transition-colors" />
               <span className="text-[11px] sm:text-xs font-[900] uppercase tracking-[0.28em] text-[#002b79] dark:text-primary transition-colors">
@@ -33,28 +33,20 @@ export default function LandingPage() {
               </span>
             </motion.div>
 
-            {/* Título: ¡MIRA VÉ! entrando desde la izquierda y CALI ES DE TODOS desde la derecha */}
-            <h1 className="flex flex-col items-center select-none overflow-visible">
-              {/* ¡MIRA VÉ!: animación suave y pausada deslizándose desde la izquierda */}
-              <motion.span
-                initial={{ opacity: 0, x: -35 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 1.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                className="text-[52px] sm:text-[68px] md:text-[76px] font-[900] leading-[0.92] tracking-tight text-[#002b79] dark:text-white transition-colors"
-              >
-                ¡MIRÁ VE!
-              </motion.span>
-
-              {/* CALI ES DE TODOS: animación suave y pausada deslizándose desde la derecha */}
-              <motion.span
-                initial={{ opacity: 0, x: 35 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 1.4, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                className="text-[26px] sm:text-[38px] md:text-[44px] font-[900] italic uppercase leading-none tracking-tight text-[#94a3b8] dark:text-primary mt-0.5 sm:mt-1 transition-colors whitespace-nowrap"
-              >
-                CALI ES DE TODOS
-              </motion.span>
-            </h1>
+            {/* Logo Oficial: ¡MIRÁ ve, CALI es DE TODOS! con animación suave */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 1.1, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-[340px] sm:max-w-[420px] md:max-w-[460px] px-2 flex items-center justify-center select-none"
+            >
+              <img
+                src="/assets/aistudio/_MIRA_ve__CALI_es_DE_TODOS__06ff50a0.png"
+                alt="¡MIRÁ ve, CALI es DE TODOS!"
+                className="w-full h-auto object-contain drop-shadow-md dark:drop-shadow-[0_10px_30px_rgba(0,132,255,0.35)] select-none pointer-events-none"
+                draggable={false}
+              />
+            </motion.div>
           </div>
 
           {/* Botón COMENZAR: Entrada suave desde abajo y animación continua de respiración */}
