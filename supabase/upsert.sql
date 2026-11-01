@@ -32,6 +32,7 @@ BEGIN
         email = new_record.email,
         neighborhood = new_record.neighborhood,
         commune = new_record.commune,
+        city = COALESCE(new_record.city, city, 'Cali'),
         education_level = new_record.education_level,
         study_area = new_record.study_area,
         is_working = new_record.is_working,
@@ -46,24 +47,31 @@ BEGIN
         organization_name = new_record.organization_name,
         interests = new_record.interests,
         talents = new_record.talents,
-        open_comments = new_record.open_comments
+        open_comments = new_record.open_comments,
+        guardian_relationship = COALESCE(new_record.guardian_relationship, guardian_relationship),
+        guardian_name = COALESCE(new_record.guardian_name, guardian_name),
+        guardian_phone = COALESCE(new_record.guardian_phone, guardian_phone),
+        guardian_token = COALESCE(new_record.guardian_token, guardian_token),
+        guardian_contact_status = COALESCE(guardian_contact_status, 'pending')
      WHERE id = existing_id;
   ELSE
      -- SI NO EXISTE: Insertamos un registro completamente nuevo
      INSERT INTO characterization_records (
         first_name, last_name, document_type, document_number, birth_date, gender,
-        military_status, phone, email, neighborhood, commune, education_level,
+        military_status, phone, email, neighborhood, commune, city, education_level,
         study_area, is_working, profession, is_internal, registration_source,
         church_headquarters, is_infomira_subscribed, is_entrepreneur,
         entrepreneur_name, is_in_organization, organization_name, interests,
-        talents, open_comments
+        talents, open_comments, guardian_relationship, guardian_name, guardian_phone,
+        guardian_token, guardian_contact_status
      ) VALUES (
         new_record.first_name, new_record.last_name, new_record.document_type, new_record.document_number, new_record.birth_date, new_record.gender,
-        new_record.military_status, new_record.phone, new_record.email, new_record.neighborhood, new_record.commune, new_record.education_level,
+        new_record.military_status, new_record.phone, new_record.email, new_record.neighborhood, new_record.commune, COALESCE(new_record.city, 'Cali'), new_record.education_level,
         new_record.study_area, new_record.is_working, new_record.profession, new_record.is_internal, new_record.registration_source,
         new_record.church_headquarters, new_record.is_infomira_subscribed, new_record.is_entrepreneur,
         new_record.entrepreneur_name, new_record.is_in_organization, new_record.organization_name, new_record.interests,
-        new_record.talents, new_record.open_comments
+        new_record.talents, new_record.open_comments, new_record.guardian_relationship, new_record.guardian_name, new_record.guardian_phone,
+        new_record.guardian_token, COALESCE(new_record.guardian_contact_status, 'pending')
      );
   END IF;
 END;

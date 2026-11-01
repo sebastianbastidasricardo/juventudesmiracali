@@ -518,8 +518,10 @@ export default function CharacterizationForm() {
       
       const { data_authorization, ...formFields } = data;
       
-      // Removed ageToSubmit calculation since we do not save age to DB anymore
-      
+      const calculatedAge = (data.birth_date ? calculateAge(data.birth_date) : null) ?? age;
+      const isMinor = typeof calculatedAge === 'number' && calculatedAge < 18;
+      const guardianToken = isMinor ? generateGuardianToken() : null;
+
       const payload = {
         ...formFields,
         // Ensure arrays are handled correctly if empty
@@ -532,10 +534,10 @@ export default function CharacterizationForm() {
         church_headquarters: data.registration_source === 'Iglesia' ? (data.church_headquarters === 'OTRO' ? data.other_church_headquarters : data.church_headquarters) : null,
         is_internal: data.registration_source === 'Iglesia',
         military_status: data.gender === 'Masculino' ? data.military_status : null,
-        guardian_relationship: (typeof age === 'number' && age < 18) ? (data.guardian_relationship || null) : null,
-        guardian_name: (typeof age === 'number' && age < 18) ? (data.guardian_name ? data.guardian_name.trim() : null) : null,
-        guardian_phone: (typeof age === 'number' && age < 18) ? (data.guardian_phone ? data.guardian_phone.replace(/\D/g, '') : null) : null,
-        guardian_token: (typeof age === 'number' && age < 18) ? generateGuardianToken() : null,
+        guardian_relationship: isMinor ? (data.guardian_relationship ? data.guardian_relationship.trim() : null) : null,
+        guardian_name: isMinor ? (data.guardian_name ? data.guardian_name.trim() : null) : null,
+        guardian_phone: isMinor ? (data.guardian_phone ? data.guardian_phone.replace(/\D/g, '') : null) : null,
+        guardian_token: guardianToken,
         talents: (() => {
           const arr = Array.isArray(data.talents) ? [...data.talents] : [];
           if (data.other_talent && data.other_talent.trim().length > 0) {
@@ -545,9 +547,6 @@ export default function CharacterizationForm() {
         })(),
         open_comments: data.open_comments || null
       };
-
-      const isMinor = typeof age === 'number' && age < 18;
-      const guardianToken = payload.guardian_token;
 
       delete (payload as any).other_church_headquarters;
       delete (payload as any).other_registration_source;
@@ -565,19 +564,50 @@ export default function CharacterizationForm() {
         throw new Error(supabaseError.message || 'Error desconocido al guardar');
       }
 
-      // Guardar la ciudad seleccionada (Cali, Jamundí o Yumbo) y datos de acudiente si aplica
+      // Guardar de inmediato la ciudad seleccionada y los datos del acudiente (nombre, parentesco, teléfono y token)
       if (supabase) {
         try {
           const updateFields: Record<string, any> = {
             city: data.city || 'Cali'
           };
-          if (isMinor && guardianToken) {
-            updateFields.guardian_token = guardianToken;
-            updateFields.guardian_contact_status = 'pending';
+          if (isMinor) {
+            if (guardianToken) {
+              updateFields.guardian_token = guardianToken;
+            }
+            if (data.guardian_relationship && data.guardian_relationship.trim()) {
+              updateFields.guardian_relationship = data.guardian_relationship.trim();
+            }
+            if (data.guardian_name && data.guardian_name.trim()) {
+              updateFields.guardian_name = data.guardian_name.trim();
+            }
+            if (data.guardian_phone && data.guardian_phone.trim()) {
+              updateFields.guardian_phone = data.guardian_phone.replace(/\D/g, '');
+            }
+
+            try {
+              const { data: existingRec } = await supabase
+                .from('characterization_records')
+                .select('guardian_contact_status')
+                .eq('document_number', data.document_number)
+                .maybeSingle();
+
+              if (!existingRec?.guardian_contact_status || existingRec.guardian_contact_status !== 'authorized') {
+                updateFields.guardian_contact_status = 'pending';
+              }
+            } catch {
+              updateFields.guardian_contact_status = 'pending';
+            }
           }
-          await supabase.from('characterization_records')
+
+          const { error: syncErr } = await supabase.from('characterization_records')
             .update(updateFields)
             .eq('document_number', data.document_number);
+
+          if (syncErr) {
+            console.warn('Nota actualizando campos de acudiente en characterization_records:', syncErr);
+          } else {
+            console.log('Datos de acudiente y ciudad guardados en Supabase:', updateFields);
+          }
         } catch (errSync) {
           console.warn('Nota sincronizando ciudad / acudiente:', errSync);
         }
@@ -602,12 +632,12 @@ export default function CharacterizationForm() {
         neighborhood: data.neighborhood,
         code: codeFromDb || undefined,
         isMinor,
-        age,
+        age: calculatedAge ?? age,
         gender: data.gender,
-        guardianName: data.guardian_name,
-        guardianPhone: data.guardian_phone,
-        guardianRelationship: data.guardian_relationship,
-        guardianToken: guardianToken
+        guardianName: isMinor && data.guardian_name ? data.guardian_name.trim() : undefined,
+        guardianPhone: isMinor && data.guardian_phone ? data.guardian_phone.replace(/\D/g, '') : undefined,
+        guardianRelationship: isMinor && data.guardian_relationship ? data.guardian_relationship.trim() : undefined,
+        guardianToken: guardianToken || undefined
       };
       setSubmittedUser(userCertData);
       setIsCompleted(true);

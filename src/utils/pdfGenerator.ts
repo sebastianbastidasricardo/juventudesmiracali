@@ -127,11 +127,6 @@ function buildActaHtmlString(record: ActaRecordData): string {
         <div style="font-size: 10.5px; color: #334155; line-height: 1.4; text-align: justify; margin-bottom: 8px;">
           <strong style="color: #0f172a;">3. MEMORIA FOTOGRÁFICA INSTITUCIONAL:</strong> Autorizo la toma de fotografías o grabaciones grupales de las actividades desarrolladas para la difusión institucional de los programas juveniles sin fines de lucro.
         </div>
-
-        <!-- RECUADRO CANAL DE CONSULTAS -->
-        <div style="padding: 8px 12px; border-radius: 6px; background-color: #eff6ff; border: 1px solid #bfdbfe; font-size: 10px; color: #1e3a8a; line-height: 1.35;">
-          <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización a través de los canales de coordinación juvenil en Santiago de Cali.
-        </div>
       </div>
 
       <!-- SECCIÓN DE FIRMAS Y CERTIFICACIÓN ELECTRÓNICA -->

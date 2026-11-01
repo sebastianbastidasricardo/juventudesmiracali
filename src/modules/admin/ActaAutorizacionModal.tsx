@@ -298,9 +298,6 @@ export default function ActaAutorizacionModal({ isOpen, onClose, record }: ActaA
               <p>
                 <strong>3. MEMORIA FOTOGRÁFICA INSTITUCIONAL:</strong> Autorizo la toma de fotografías o grabaciones grupales de las actividades desarrolladas para la difusión institucional de los programas juveniles sin fines de lucro.
               </p>
-              <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-[10.5px] text-slate-700">
-                <strong>Canal de Consultas y Reclamaciones:</strong> En cualquier momento, el padre o acudiente puede consultar, actualizar o solicitar la revocación de esta autorización a través de los canales de coordinación juvenil en Santiago de Cali.
-              </div>
             </div>
 
             {/* Sección de Firma */}

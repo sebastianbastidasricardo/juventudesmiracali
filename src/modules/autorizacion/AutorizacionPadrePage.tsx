@@ -798,9 +798,6 @@ export default function AutorizacionPadrePage() {
                         <p>
                           <strong>Validez Jurídica de la Firma:</strong> Conforme al Artículo 7 de la Ley 527 de 1999 de Colombia, este mensaje de datos y la firma digital registrada tienen pleno valor probatorio y validez legal.
                         </p>
-                        <p className="text-slate-300 bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
-                          <strong>Canal de Consultas y Reclamaciones:</strong> Como titular o representante legal, puedes ejercer tus derechos de Habeas Data (conocer, actualizar o revocar la autorización) a través de los canales de coordinación juvenil en Santiago de Cali.
-                        </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
